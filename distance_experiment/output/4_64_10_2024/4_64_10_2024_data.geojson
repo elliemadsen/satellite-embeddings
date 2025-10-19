@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "4_64_10_2024_data",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "lat": 48.7128, "lon": -74.006, "umap_x": 13.944469, "umap_y": 9.3867645, "grid_x_norm": 1.0, "grid_y_norm": 0.0, "grid_x": 1.0, "grid_y": 0.0, "pixel_x": 64.0, "pixel_y": 0.0 }, "geometry": { "type": "Point", "coordinates": [ -74.006, 48.7128 ] } },
+{ "type": "Feature", "properties": { "lat": 34.0522, "lon": -118.2437, "umap_x": 13.292034, "umap_y": 10.81805, "grid_x_norm": 0.0, "grid_y_norm": 1.0, "grid_x": 0.0, "grid_y": 1.0, "pixel_x": 0.0, "pixel_y": 64.0 }, "geometry": { "type": "Point", "coordinates": [ -118.2437, 34.0522 ] } },
+{ "type": "Feature", "properties": { "lat": 41.8781, "lon": -87.6298, "umap_x": 14.217844, "umap_y": 10.253699, "grid_x_norm": 0.0, "grid_y_norm": 0.0, "grid_x": 0.0, "grid_y": 0.0, "pixel_x": 0.0, "pixel_y": 0.0 }, "geometry": { "type": "Point", "coordinates": [ -87.6298, 41.8781 ] } },
+{ "type": "Feature", "properties": { "lat": 29.7604, "lon": -95.3698, "umap_x": 12.890848, "umap_y": 9.9576073, "grid_x_norm": 1.0, "grid_y_norm": 1.0, "grid_x": 1.0, "grid_y": 1.0, "pixel_x": 64.0, "pixel_y": 64.0 }, "geometry": { "type": "Point", "coordinates": [ -95.3698, 29.7604 ] } }
+]
+}
