@@ -1,1 +1,4 @@
 .DS_Store
+
+# too large tifs
+*merged*.tif
