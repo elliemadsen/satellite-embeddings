@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>WebMercator tiles → real globe (fixed)</title>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
+          "three/examples/jsm/controls/OrbitControls.js": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/controls/OrbitControls.js"
+        }
+      }
+    </script>
+
+    <style>
+      body {
+        margin: 0;
+        background: white;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+      #loading {
+        position: absolute;
+        left: 12px;
+        top: 12px;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-family: sans-serif;
+        font-size: 13px;
+        box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading">loading tiles…</div>
+    <canvas id="c"></canvas>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+
+      /* ------------------------ USER CONFIG ------------------------ */
+      const TILE_URL = "tiles/{z}/{x}/{y}.png"; // your tiles path
+      const MIN_ZOOM = 0;
+      const MAX_ZOOM = 6; // generated range in your script (0..5) — keep safe margin
+      const INITIAL_ZOOM = 1;
+      const TILE_SIZE = 256; // generated tile size from gdal2tiles
+      const MAX_CANVAS_SIZE = 4096; // avoid enormous canvas — adjust if you can handle bigger
+      /* ------------------------------------------------------------ */
+
+      const canvas = document.getElementById("c");
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio || 1);
+      renderer.setSize(innerWidth, innerHeight);
+      renderer.setClearColor(0xffffff, 1);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        50,
+        innerWidth / innerHeight,
+        0.01,
+        100
+      );
+      camera.position.set(0, 0, 3);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enablePan = false;
+      controls.enableZoom = false; // custom zoom
+
+      // sphere
+      const SPHERE_SEG = 256;
+      const sphereGeom = new THREE.SphereGeometry(1, SPHERE_SEG, SPHERE_SEG);
+
+      // atlas canvas + texture
+      let atlasCanvas = document.createElement("canvas");
+      let atlasCtx = atlasCanvas.getContext("2d", { willReadFrequently: true }); // reading rows
+      let atlasTexture = new THREE.CanvasTexture(atlasCanvas);
+      atlasTexture.flipY = false; // we control orientation explicitly
+      atlasTexture.encoding = THREE.sRGBEncoding;
+      atlasTexture.generateMipmaps = true;
+      atlasTexture.minFilter = THREE.LinearMipmapLinearFilter;
+      atlasTexture.magFilter = THREE.LinearFilter;
+
+      const mat = new THREE.MeshBasicMaterial({ map: atlasTexture });
+      const globe = new THREE.Mesh(sphereGeom, mat);
+      scene.add(globe);
+
+      // loading UI
+      const loadingDiv = document.getElementById("loading");
+      function setLoading(msg) {
+        loadingDiv.textContent = msg ?? "";
+        loadingDiv.style.display = msg ? "block" : "none";
+      }
+
+      /* ------------------ Utility: lat <-> webmerc math ------------------ */
+      /* For mapping: we need a function that, for a *given latitude in degrees*, returns the
+   Y position (normalized 0..1 top-to-bottom) in Web Mercator tile space (origin top-left). */
+
+      function latToWebMercatorYnorm(latDeg) {
+        // formula: mercN = ln( tan(pi/4 + lat/2) )
+        // normalized Y = 0.5 - mercN / (2π)
+        const latRad = (latDeg * Math.PI) / 180;
+        const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
+        return 0.5 - mercN / (2 * Math.PI);
+      }
+
+      /* ------------------ Build/refresh atlas for a zoom level ------------------ */
+
+      let currentZoom = INITIAL_ZOOM | 0;
+      let pendingLoad = null;
+
+      async function buildAtlasForZoom(zoomFloat) {
+        const z = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.floor(zoomFloat)));
+        currentZoom = z;
+
+        setLoading(`loading tiles z=${z} …`);
+        const N = Math.pow(2, z);
+        const fullW = N * TILE_SIZE;
+        const fullH = N * TILE_SIZE;
+
+        // if too big, scale down everything to fit MAX_CANVAS_SIZE
+        let scale = 1;
+        if (fullW > MAX_CANVAS_SIZE || fullH > MAX_CANVAS_SIZE) {
+          scale = Math.min(MAX_CANVAS_SIZE / fullW, MAX_CANVAS_SIZE / fullH);
+        }
+
+        const W = Math.max(1, Math.floor(fullW * scale));
+        const H = Math.max(1, Math.floor(fullH * scale));
+
+        // resize atlas canvas
+        atlasCanvas.width = W;
+        atlasCanvas.height = H;
+        atlasCtx = atlasCanvas.getContext("2d", { willReadFrequently: true });
+        atlasCtx.fillStyle = "#9aa"; // temporary background so missing tiles are visible
+        atlasCtx.fillRect(0, 0, W, H);
+
+        // loader helper — use Image objects so we can draw scaled if needed
+        function loadImage(url) {
+          console.log("loading tile:  " + url);
+
+          return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => resolve(img);
+            img.onerror = () => resolve(null); // tolerate missing tile
+            img.src = url;
+          });
+        }
+
+        // draw every tile into a temporary grid canvas (scaled by 'scale')
+        // We will draw tiles into atlasCanvas at location (x * TILE_SIZE * scale, y * TILE_SIZE * scale)
+        const drawPromises = [];
+        for (let y = 0; y < N; y++) {
+          for (let x = 0; x < N; x++) {
+            const url = TILE_URL.replace("{z}", z)
+              .replace("{x}", x)
+              .replace("{y}", y);
+            const destX = Math.round(x * TILE_SIZE * scale);
+            const destY = Math.round(y * TILE_SIZE * scale);
+            const destW = Math.round(TILE_SIZE * scale);
+            const destH = Math.round(TILE_SIZE * scale);
+
+            drawPromises.push(
+              loadImage(url).then((img) => {
+                if (img) {
+                  atlasCtx.drawImage(img, destX, destY, destW, destH);
+                } else {
+                  // draw placeholder (semi-transparent) so missing tiles are visible
+                  atlasCtx.fillStyle = "rgba(220,220,220,0.6)";
+                  atlasCtx.fillRect(destX, destY, destW, destH);
+                }
+              })
+            );
+          }
+        }
+
+        await Promise.all(drawPromises);
+
+        // ---------- REMAP: WebMercator -> Equirectangular ----------
+        // We need to transform rows so that the final atlas image is equirectangular:
+        // For each target scanline y (0..H-1) which corresponds to latitude lat = 90 - y*(180/H)
+        // compute normalized mercator Y: ym = latToWebMercatorYnorm(lat)
+        // then sample source row at srcY = ym * H_src (H_src = H, because we drew the full mercator grid into atlasCanvas)
+        //
+        // IMPORTANT: there is a vertical flip mismatch between canvas image (top=0) and sphere UVs → fix by flipping rows.
+        //
+        // To avoid in-place overwrite issues, create a temporary buffer and write remapped rows into it.
+
+        const src = atlasCtx.getImageData(0, 0, W, H);
+        const srcData = src.data;
+        const out = atlasCtx.createImageData(W, H);
+        const outData = out.data;
+
+        // we'll copy one row at a time for speed
+        for (let dstY = 0; dstY < H; dstY++) {
+          // latitude for this equirectangular row (top = +90 -> north pole)
+          // The output Equirectangular image's top (dstY=0) is North Pole (+90 lat)
+          const lat = 90 - (dstY + 0.5) * (180 / H); // center sample of row
+          let ym = latToWebMercatorYnorm(lat); // 0..1 top->bottom in mercator
+          // clamp:
+          if (ym < 0) ym = 0;
+          if (ym > 1) ym = 1;
+
+          // source row index in the mercator-assembled source (0..H-1)
+          // ym*H gives the source row index. No explicit flip is needed here.
+          let srcY = Math.floor(ym * H);
+
+          // CRITICAL: We need to apply the image flip here because Canvas/ImageData
+          // is top-to-bottom (0-H), but the THREE.js UV texture is set to `flipY = false`,
+          // meaning v=0 is at the bottom.
+          // The lat calculation produces a row order (North at top, South at bottom)
+          // that is incompatible with the standard THREE.js Sphere UV mapping
+          // where V=1 is North, V=0 is South.
+          // The simplest way to fix this is to flip the *destination* row.
+          const finalDstY = H - 1 - dstY;
+
+          const srcRowStart = srcY * W * 4;
+          const dstRowStart = finalDstY * W * 4; // *** USE FLIPPED DESTINATION ROW ***
+
+          // copy row bytes
+          for (let i = 0; i < W * 4; i++) {
+            outData[dstRowStart + i] = srcData[srcRowStart + i];
+          }
+        }
+
+        // write remapped image back into atlas canvas
+        atlasCtx.putImageData(out, 0, 0);
+
+        // ... (rest of the texture update is fine)
+
+        // update texture
+        atlasTexture.needsUpdate = true;
+        // ensure mipmaps regen
+        atlasTexture.generateMipmaps = true;
+
+        setLoading(""); // hide
+      }
+
+      /* -------------- Zoom and input handlers (pinch/arrow/wheel) -------------- */
+
+      let zoomFloat = INITIAL_ZOOM;
+      function setZoom(val) {
+        zoomFloat = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, val));
+        // change camera distance for feel
+        camera.position.setLength(3 - zoomFloat * 0.33);
+        // cancel previous pending load & start a fresh one
+        if (pendingLoad) {
+          /* nothing to cancel for simple implementation */
+        }
+        pendingLoad = buildAtlasForZoom(zoomFloat);
+      }
+
+      window.addEventListener("wheel", (e) => {
+        setZoom(zoomFloat + (e.deltaY > 0 ? -0.2 : 0.2));
+      });
+
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowUp") setZoom(zoomFloat + 0.2);
+        if (e.key === "ArrowDown") setZoom(zoomFloat - 0.2);
+      });
+
+      // pinch zoom for touch
+      let prevDist = 0;
+      window.addEventListener(
+        "touchmove",
+        (e) => {
+          if (e.touches && e.touches.length === 2) {
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            const d = Math.sqrt(dx * dx + dy * dy);
+            if (prevDist) {
+              setZoom(zoomFloat + (d - prevDist) * 0.005);
+            }
+            prevDist = d;
+          }
+        },
+        { passive: false }
+      );
+
+      window.addEventListener("touchend", () => (prevDist = 0));
+
+      /* ----------------------- start rendering ----------------------- */
+
+      setZoom(INITIAL_ZOOM);
+
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      window.addEventListener("resize", () => {
+        renderer.setSize(innerWidth, innerHeight);
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+      });
+    </script>
+  </body>
+</html>
