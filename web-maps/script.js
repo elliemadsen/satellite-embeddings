@@ -10,6 +10,7 @@ const map = new maplibregl.Map({
   bearing: 0,
   antialias: true,
   attributionControl: false,
+  //   cacheControl: { maxAge: 0 },
 });
 
 map.on("style.load", () => {
@@ -18,7 +19,10 @@ map.on("style.load", () => {
   // Add custom raster tile source
   map.addSource("alpha-earth", {
     type: "raster",
-    tiles: [`tiles/${YEAR}_${SCALE}/{z}/{x}/{y}.png`],
+    tiles: [
+      `https://media.githubusercontent.com/media/elliemadsen/satellite-embeddings/refs/heads/main/web-maps/tiles/${YEAR}_${SCALE}/{z}/{x}/{y}.png`,
+    ],
+    // tiles: [`tiles/${YEAR}_${SCALE}/{z}/{x}/{y}.png`],
     tileSize: 256,
     maxzoom: 8,
   });
