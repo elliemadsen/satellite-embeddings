@@ -1,0 +1,11 @@
+ee-api
+earthengine-api
+numpy
+pandas
+geopandas
+shapely
+umap-learn
+matplotlib
+tqdm
+geopandas
+gdal
