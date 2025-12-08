@@ -1,4 +1,4 @@
 .DS_Store
 
-# too large tifs
-*merged*.tif
+# tifs that are used to gen tiles
+web-maps/tifs/*.tif
