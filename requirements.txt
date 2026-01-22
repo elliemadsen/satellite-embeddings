@@ -1,5 +1,8 @@
 ee-api
 earthengine-api
+geemap
+ipywidgets
+ipyleaflet
 numpy
 pandas
 geopandas
