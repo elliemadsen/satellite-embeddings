@@ -1,0 +1,356 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Courier New", monospace;
+  background: #ffffff;
+  color: #000000;
+  overflow: hidden;
+}
+
+#page-container {
+  display: flex;
+  flex-direction: row;
+  width: 100vw;
+  height: 100vh;
+  gap: 0;
+}
+
+#left-column {
+  width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+#middle-column {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+#right-column {
+  width: 180px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#controls {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 25px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+#controls h2 {
+  margin: 0 0 20px 0;
+  font-size: 15px;
+  text-transform: uppercase;
+  font-weight: 400;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+  color: #000;
+}
+
+.control-group {
+  margin-bottom: 22px;
+}
+
+.control-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.control-group input[type="range"] {
+  width: 100%;
+  height: 6px;
+  background: #ddd;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.control-group input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #888;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.control-group input[type="range"]::-webkit-slider-thumb:hover {
+  background: #555;
+  transform: scale(1.2);
+}
+
+.slider-value {
+  /* display: inline-block; */
+  float: right;
+  font-weight: 400;
+  color: #666;
+  font-size: 14px;
+}
+
+.toggle-group {
+  display: flex;
+  gap: 10px;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 10px;
+  background: #ddd;
+  border: none;
+  color: #333;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 400;
+  font-family: "Courier New", monospace;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.toggle-btn:hover {
+  background: #ccc;
+}
+
+.toggle-btn.active {
+  background: #888;
+  color: #fff;
+}
+
+#info {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 15px 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  margin-top: auto;
+}
+
+#info.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#info div {
+  margin: 6px 0;
+  font-size: 13px;
+}
+
+#info .label {
+  color: #666;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+#info .value {
+  color: #000;
+  font-weight: 400;
+  font-size: 14px;
+}
+
+#container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+#grid-1d,
+#grid-2d {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+}
+
+#grid-1d.active,
+#grid-2d.active {
+  display: block;
+}
+
+.grid-image {
+  position: absolute;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, z-index 0s;
+}
+
+.grid-image:hover {
+  transform: scale(1.5);
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(128, 128, 128, 0.5);
+}
+
+/* Modal styles */
+#modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 180px;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 2000;
+}
+
+#modal-overlay.fullwidth {
+  right: 0;
+}
+
+#modal-overlay.fullwidth #modal-content {
+  margin-left: 320px;
+  margin-right: 180px;
+}
+
+#modal-overlay.active {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#modal-content {
+  background: transparent;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  margin-left: 320px;
+}
+
+#modal-image {
+  max-width: 100%;
+  max-height: 100%;
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+  display: block;
+  padding: 20px;
+}
+
+#modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #ffffff;
+  border: none;
+  width: 40px;
+  height: 40px;
+  font-size: 24px;
+  cursor: pointer;
+  color: #000;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2001;
+}
+
+#modal-close:hover {
+  background: #888;
+  color: #fff;
+}
+
+#loading {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  z-index: 2000;
+  color: #000;
+}
+
+/* Band Selector Styles */
+#band-selector {
+  text-transform: uppercase;
+  width: 180px;
+  height: 800px;
+  background: #ffffff;
+  display: none;
+  position: relative;
+  overflow: hidden;
+}
+
+#band-scale {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 20px 8px;
+}
+
+.band-tick {
+  position: absolute;
+  right: 32px;
+  font-size: 12px;
+  color: #666;
+  line-height: 1;
+  user-select: none;
+  transition: font-size 0.2s, color 0.2s;
+}
+
+.band-tick.selected {
+  font-size: 15px;
+  color: #000;
+}
+
+#band-handle {
+  position: absolute;
+  left: 70px;
+  right: 20px;
+  height: 29px;
+  background: rgba(128, 128, 128, 0.3);
+  cursor: grab;
+  z-index: 10;
+  pointer-events: all;
+}
+
+#band-handle:active {
+  cursor: grabbing;
+  background: rgba(128, 128, 128, 0.4);
+}
+
+#band-value {
+  display: none;
+}
+
+.rgb-label {
+  position: absolute;
+  left: 80px;
+  font-size: 14px;
+  line-height: 1;
+  color: #000;
+  user-select: none;
+}
+
+#band-selector-label {
+  position: absolute;
+  top: 5px;
+  left: 0;
+  right: 0;
+  font-size: 13px;
+  font-weight: normal;
+  color: #666;
+  user-select: none;
+  white-space: nowrap;
+  text-align: center;
+}

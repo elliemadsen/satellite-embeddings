@@ -7,7 +7,10 @@ let currentN = 64;
 let currentDimension = 2;
 let currentAlgorithm = 'umap';
 let currentImageType = 'embed'; // 'embed' or 'rgb'
-let scene, camera, renderer, controls;let modalOpen = false; // Track if modal is open
+let currentBandStart = 0; // Starting band for embedding visualization (0-61)
+let currentModalSample = null; // Currently displayed sample in modal
+let scene, camera, renderer, controls;
+let modalOpen = false; // Track if modal is open
 // Land classification legend
 const LAND_CLASSIFICATION_LEGEND = {
         0: ["#949C9F", "Unknown / No Data"],
@@ -44,7 +47,16 @@ function openModal(imageSrc, sample) {
     const img = document.getElementById('modal-image');
     img.src = imageSrc;
     modal.classList.add('active');
+    
+    // If showing satellite image, cover the right column too
+    if (currentImageType === 'rgb') {
+        modal.classList.add('fullwidth');
+    } else {
+        modal.classList.remove('fullwidth');
+    }
+    
     modalOpen = true;
+    currentModalSample = sample;
     
     // Keep info visible and update it for the clicked image
     if (sample) {
@@ -58,6 +70,7 @@ function closeModal() {
     const modal = document.getElementById('modal-overlay');
     modal.classList.remove('active');
     modalOpen = false;
+    currentModalSample = null;
     
     // Reset info z-index and hide it
     const info = document.getElementById('info');
@@ -98,12 +111,10 @@ function preloadImage(src) {
 }
 
 // Preload all images for a dataset
-async function preloadImagesForData(data, imageType) {
+async function preloadImagesForData(data, imageType, bandStart = 0) {
     const imagePromises = data.map(sample => {
-        const patchFile = imageType === 'embed' 
-            ? (sample.patch_file_embed || sample.patch_file)
-            : (sample.patch_file_rgb || sample.patch_file);
-        return preloadImage(`sat_patches/${patchFile}`);
+        const imageSrc = getImageSrc(sample, imageType, bandStart);
+        return preloadImage(imageSrc);
     });
     
     try {
@@ -312,16 +323,23 @@ document.querySelectorAll('[data-imgtype]').forEach(btn => {
         document.querySelectorAll('[data-imgtype]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentImageType = btn.dataset.imgtype;
+        updateBandSelectorVisibility();
         render();
     });
 });
 
-// Helper function to get correct patch file based on image type
-function getPatchFile(sample) {
-    if (currentImageType === 'embed') {
-        return sample.patch_file_embed || sample.patch_file; // fallback for old data
+// Helper function to get correct image source based on image type and band selection
+function getImageSrc(sample, imageType = currentImageType, bandStart = currentBandStart) {
+    const tileDir = sample.tile_dir || `tiles/${String(sample.index).padStart(4, '0')}`;
+    const index = String(sample.index).padStart(4, '0');
+    
+    if (imageType === 'embed') {
+        const b1 = bandStart;
+        const b2 = bandStart + 1;
+        const b3 = bandStart + 2;
+        return `${tileDir}/${index}_A${b1}_A${b2}_A${b3}.png`;
     } else {
-        return sample.patch_file_rgb || sample.patch_file; // fallback for old data
+        return `${tileDir}/${index}_satellite.png`;
     }
 }
 
@@ -393,20 +411,21 @@ function render1D(samples) {
     container.innerHTML = '';
     
     const xKey = `grid_${currentAlgorithm}_1d_x`;
-    const containerWidth = window.innerWidth - 300;
-    const containerHeight = window.innerHeight;
+    const middleColumn = document.getElementById('middle-column');
+    const containerWidth = middleColumn.clientWidth;
+    const containerHeight = middleColumn.clientHeight;
     const imageSize = Math.min(80, containerWidth / samples.length);
     const gap = 5;
     const totalWidth = samples.length * (imageSize + gap);
-    const startX = (containerWidth - totalWidth) / 2 + 150;
-    const centerY = containerHeight / 2 + 100;  // move below control box
+    const startX = (containerWidth - totalWidth) / 2;
+    const centerY = containerHeight / 2;
     
     // Sort by grid position
     const sorted = samples.sort((a, b) => a[xKey] - b[xKey]);
     
     sorted.forEach((sample, i) => {
         const img = document.createElement('img');
-        img.src = `sat_patches/${getPatchFile(sample)}`;
+        img.src = getImageSrc(sample);
         img.className = 'grid-image';
         img.style.width = `${imageSize}px`;
         img.style.height = `${imageSize}px`;
@@ -415,7 +434,7 @@ function render1D(samples) {
         
         img.addEventListener('mouseenter', () => showInfo(sample));
         img.addEventListener('mouseleave', hideInfo);
-        img.addEventListener('click', () => openModal(`sat_patches/${getPatchFile(sample)}`, sample));
+        img.addEventListener('click', () => openModal(getImageSrc(sample), sample));
         
         container.appendChild(img);
     });
@@ -432,8 +451,9 @@ function render2D(samples) {
     
     // Find grid bounds
     const gridSize = Math.ceil(Math.sqrt(samples.length));
-    const containerWidth = window.innerWidth - 300;
-    const containerHeight = window.innerHeight;
+    const middleColumn = document.getElementById('middle-column');
+    const containerWidth = middleColumn.clientWidth;
+    const containerHeight = middleColumn.clientHeight;
     const buffer = 20; // Fixed buffer around grid
     const gap = 3;
     
@@ -444,7 +464,7 @@ function render2D(samples) {
     
     const totalGridWidth = gridSize * (imageSize + gap) - gap;
     const totalGridHeight = gridSize * (imageSize + gap) - gap;
-    const offsetX = (containerWidth - totalGridWidth) / 2 + 150;
+    const offsetX = (containerWidth - totalGridWidth) / 2;
     const offsetY = (containerHeight - totalGridHeight) / 2;
     
     samples.forEach(sample => {
@@ -452,7 +472,7 @@ function render2D(samples) {
         const gridY = sample[yKey];
         
         const img = document.createElement('img');
-        img.src = `sat_patches/${getPatchFile(sample)}`;
+        img.src = getImageSrc(sample);
         img.className = 'grid-image';
         img.style.width = `${imageSize}px`;
         img.style.height = `${imageSize}px`;
@@ -461,7 +481,7 @@ function render2D(samples) {
         
         img.addEventListener('mouseenter', () => showInfo(sample));
         img.addEventListener('mouseleave', hideInfo);
-        img.addEventListener('click', () => openModal(`sat_patches/${getPatchFile(sample)}`, sample));
+        img.addEventListener('click', () => openModal(getImageSrc(sample), sample));
         
         container.appendChild(img);
     });
@@ -480,10 +500,38 @@ function render3D(samples) {
         savedControlsTarget = controls.target.clone();
     }
     
-    // Clean up previous scene
+    // Clean up previous scene properly
+    if (scene) {
+        // Dispose of all geometries, materials, and textures
+        scene.traverse((object) => {
+            if (object.geometry) {
+                object.geometry.dispose();
+            }
+            if (object.material) {
+                if (Array.isArray(object.material)) {
+                    object.material.forEach(material => {
+                        if (material.map) material.map.dispose();
+                        material.dispose();
+                    });
+                } else {
+                    if (object.material.map) object.material.map.dispose();
+                    object.material.dispose();
+                }
+            }
+        });
+        // Clear the scene
+        while(scene.children.length > 0) {
+            scene.remove(scene.children[0]);
+        }
+    }
+    
     if (renderer) {
         renderer.dispose();
         canvas.innerHTML = '';
+    }
+    
+    if (controls) {
+        controls.dispose();
     }
     
     const xKey = `grid_${currentAlgorithm}_3d_x`;
@@ -491,8 +539,9 @@ function render3D(samples) {
     const zKey = `grid_${currentAlgorithm}_3d_z`;
     
     // Get container dimensions
-    const containerWidth = window.innerWidth - 340;
-    const containerHeight = window.innerHeight - 40;
+    const middleColumn = document.getElementById('middle-column');
+    const containerWidth = middleColumn.clientWidth;
+    const containerHeight = middleColumn.clientHeight;
     
     // Setup Three.js scene
     scene = new THREE.Scene();
@@ -554,7 +603,7 @@ function render3D(samples) {
         const gridY = sample[yKey];
         const gridZ = sample[zKey];
         
-        loader.load(`sat_patches/${getPatchFile(sample)}`, (texture) => {
+        loader.load(getImageSrc(sample), (texture) => {
             const geometry = new THREE.PlaneGeometry(imageSize, imageSize);
             const material = new THREE.MeshBasicMaterial({ 
                 map: texture,
@@ -582,13 +631,13 @@ function render3D(samples) {
     
     // Mouse interaction
     function onMouseMove(event) {
-        const containerWidth = window.innerWidth - 340;
-        const containerHeight = window.innerHeight - 40;
-        const offsetX = 340;
-        const offsetY = 20;
+        const middleColumn = document.getElementById('middle-column');
+        const rect = middleColumn.getBoundingClientRect();
+        const containerWidth = middleColumn.clientWidth;
+        const containerHeight = middleColumn.clientHeight;
         
-        mouse.x = ((event.clientX - offsetX) / containerWidth) * 2 - 1;
-        mouse.y = -((event.clientY - offsetY) / containerHeight) * 2 + 1;
+        mouse.x = ((event.clientX - rect.left) / containerWidth) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / containerHeight) * 2 + 1;
         
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObjects(scene.children.filter(obj => obj.userData.lat));
@@ -615,20 +664,20 @@ function render3D(samples) {
     }
     
     function onMouseClick(event) {
-        const containerWidth = window.innerWidth - 340;
-        const containerHeight = window.innerHeight - 40;
-        const offsetX = 340;
-        const offsetY = 20;
+        const middleColumn = document.getElementById('middle-column');
+        const rect = middleColumn.getBoundingClientRect();
+        const containerWidth = middleColumn.clientWidth;
+        const containerHeight = middleColumn.clientHeight;
         
-        mouse.x = ((event.clientX - offsetX) / containerWidth) * 2 - 1;
-        mouse.y = -((event.clientY - offsetY) / containerHeight) * 2 + 1;
+        mouse.x = ((event.clientX - rect.left) / containerWidth) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / containerHeight) * 2 + 1;
         
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObjects(scene.children);
         
         if (intersects.length > 0 && intersects[0].object.userData.lat) {
             const sample = intersects[0].object.userData;
-            openModal(`sat_patches/${getPatchFile(sample)}`, sample);
+            openModal(getImageSrc(sample), sample);
         }
     }
     
@@ -648,8 +697,9 @@ function render3D(samples) {
 // Handle window resize
 window.addEventListener('resize', () => {
     if (currentDimension === 3 && camera) {
-        const containerWidth = window.innerWidth - 340;
-        const containerHeight = window.innerHeight - 40;
+        const middleColumn = document.getElementById('middle-column');
+        const containerWidth = middleColumn.clientWidth;
+        const containerHeight = middleColumn.clientHeight;
         camera.aspect = containerWidth / containerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(containerWidth, containerHeight);
@@ -658,5 +708,118 @@ window.addEventListener('resize', () => {
     }
 });
 
+// Band selector functions
+function initBandSelector() {
+    const selector = document.getElementById('band-selector');
+    const scale = document.getElementById('band-scale');
+    const handle = document.getElementById('band-handle');
+    const bandValue = document.getElementById('band-value');
+    
+    const padding = 20; // Top/bottom padding from CSS
+    const availableHeight = 800 - (padding * 2); // 760px usable space
+    const tickSpacing = availableHeight / 63; // Space between each band number
+    
+    // Create tick marks for 0-63
+    const tickElements = [];
+    for (let i = 0; i <= 63; i++) {
+        const tick = document.createElement('div');
+        tick.className = 'band-tick';
+        tick.textContent = String(i).padStart(2, '0');
+        tick.style.top = `${padding + (i * tickSpacing)}px`;
+        scale.appendChild(tick);
+        tickElements.push(tick);
+    }
+    
+    // Create RGB labels
+    const rgbLabels = ['R', 'G', 'B'];
+    const rgbElements = [];
+    rgbLabels.forEach((label, idx) => {
+        const elem = document.createElement('div');
+        elem.className = `rgb-label ${label.toLowerCase()}`;
+        elem.textContent = label;
+        scale.appendChild(elem);
+        rgbElements.push(elem);
+    });
+    
+    let isDragging = false;
+    const minBand = 0;
+    const maxBand = 61; // 0-61 allows A0-A1-A2 through A61-A62-A63
+    const handleHeight = tickSpacing * 3; // Height to cover exactly 3 bands
+    
+    function updateHandlePosition(band) {
+        // Position handle so it centers on the 3 selected bands
+        const position = padding + (band * tickSpacing);
+        handle.style.top = `${position}px`;
+        handle.style.height = `${handleHeight}px`;
+        
+        // Update RGB label positions to align with selected bands
+        rgbElements.forEach((elem, idx) => {
+            elem.style.top = `${padding + ((band + idx) * tickSpacing)}px`;
+        });
+        
+        // Highlight selected band numbers
+        tickElements.forEach((tick, idx) => {
+            if (idx >= band && idx <= band + 2) {
+                tick.classList.add('selected');
+            } else {
+                tick.classList.remove('selected');
+            }
+        });
+        
+        // Update modal image if modal is open
+        if (modalOpen && currentModalSample) {
+            const modalImg = document.getElementById('modal-image');
+            modalImg.src = getImageSrc(currentModalSample);
+        }
+    }
+    
+    function handleMove(clientY) {
+        const rect = selector.getBoundingClientRect();
+        let y = clientY - rect.top - padding; // Adjust for padding
+        const maxY = maxBand * tickSpacing; // Allow handle to reach band 61
+        y = Math.max(0, Math.min(y, maxY));
+        
+        const band = Math.round(y / tickSpacing);
+        currentBandStart = Math.max(minBand, Math.min(band, maxBand));
+        
+        updateHandlePosition(currentBandStart);
+        render();
+    }
+    
+    handle.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            handleMove(e.clientY);
+        }
+    });
+    
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+    
+    selector.addEventListener('click', (e) => {
+        if (e.target !== handle && !handle.contains(e.target)) {
+            handleMove(e.clientY);
+        }
+    });
+    
+    updateHandlePosition(currentBandStart);
+}
+
+function updateBandSelectorVisibility() {
+    const bandSelector = document.getElementById('band-selector');
+    if (currentImageType === 'embed') {
+        bandSelector.style.display = 'block';
+    } else {
+        bandSelector.style.display = 'none';
+    }
+}
+
 // Initialize
 initialize();
+initBandSelector();
+updateBandSelectorVisibility();

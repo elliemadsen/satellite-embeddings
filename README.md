@@ -48,26 +48,27 @@ Compares embedding spaces across years and generates large-scale similarity grid
 
 ### **distance_experiment_web/** – Interactive Dimensionality Reduction Visualization
 
-Interactive web application for exploring dimensionality-reduced satellite embeddings in 1D, 2D, and 3D.
+Interactive web application for exploring dimensionality-reduced satellite embeddings in 1D, 2D, and 3D with live false color band selection.
 
 - **generate_web_data.ipynb**: Preprocesses data from dimension-reduction experiments
   - Uses Hungarian algorithm to arrange embeddings optimally in 1D, 2D (grid), and 3D (cube) layouts
   - Supports multiple sample sizes: 1D (1-100), 2D squares (64, 144, 256, 576, 900, 1024), 3D cubes (64, 125, 216, 512, 1000)
-  - Downloads satellite imagery patches (64x64px) for both embedding visualization and RGB true color
-  - Implements multi-strategy fallback for RGB imagery (Sentinel-2 → Landsat 8) to ensure complete coverage
-  - Exports GeoJSON files with grid coordinates, classifications, and patch file references for both UMAP and t-SNE
-- **Interactive Visualization** (app.js, index.html, serve.py):
+  - Downloads **62 false color band combinations** per location (all consecutive triplets: A00-A01-A02 through A61-A62-A63)
+  - Downloads true color RGB satellite imagery from Sentinel-2 or Landsat 8
+  - Exports data to tile-based structure: `tiles/{index:04d}/{index}_A{b1}_A{b2}_A{b3}.png`
+  - Exports GeoJSON files with grid coordinates, classifications, and references for both UMAP and t-SNE
+- **Interactive Visualization** (index.html, styles.css, app.js):
+  - **Band selector**: Vertical interactive slider to select 3 consecutive bands from 64 available (A00-A63) with live RGB updates
   - Toggle between 1D (line), 2D (grid), and 3D (cube) arrangements
   - Switch between UMAP and t-SNE reduction algorithms
-  - View embedding visualizations or RGB satellite imagery
+  - Switch between true color satellite imagery or false color embedding bands
   - Adjustable sample count with smooth transitions
-  - 3D mode features: fixed cube size, dynamic image scaling, camera position preservation, orbit controls
-  - Modal image viewer with persistent info panel showing location, land classification, and region
-  - Three-layer caching system: HTTP headers, background preloading, and in-memory cache
-  - Hover interactions with land classification lookup and metadata display
+  - 3D mode: OrbitControls, proper memory management, hover highlights, camera position preservation
+  - Modal image viewer with band selector integration for live false color changes during closeup
+  - Hover interactions showing location, land classification, and region metadata
 
 **Inputs:** Classified embeddings from dimension-reduction, Google Satellite Embeddings, Sentinel-2/Landsat-8 imagery  
-**Outputs:** GeoJSON grid layouts (1D/2D/3D), satellite patch images (embed + RGB), interactive HTML visualization
+**Outputs:** Tile directories with 62 band combinations + RGB per location, GeoJSON grid layouts (1D/2D/3D), interactive HTML visualization
 
 ![image](distance_experiment_web/screenshot.png)
 
