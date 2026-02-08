@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Satellite Embeddings - Interactive Grid</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Courier New", monospace;
+        background: #ffffff;
+        color: #000000;
+        overflow: hidden;
+      }
+
+      #controls {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 25px;
+        /* border-radius: 12px; */
+        z-index: 1000;
+        min-width: 280px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      }
+
+      #controls h2 {
+        margin: 0 0 20px 0;
+        font-size: 18px;
+        font-weight: 400;
+        border-bottom: 2px solid #ddd;
+        padding-bottom: 10px;
+        color: #000;
+      }
+
+      .control-group {
+        margin-bottom: 22px;
+      }
+
+      .control-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 13px;
+        font-weight: 400;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .control-group input[type="range"] {
+        width: 100%;
+        height: 6px;
+        background: #ddd;
+        border-radius: 3px;
+        outline: none;
+        appearance: none;
+        -webkit-appearance: none;
+      }
+
+      .control-group input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 12px;
+        height: 12px;
+        background: #888;
+        cursor: pointer;
+        /* border-radius: 50%; */
+        transition: all 0.2s;
+      }
+
+      .control-group input[type="range"]::-webkit-slider-thumb:hover {
+        background: #555;
+        transform: scale(1.2);
+      }
+
+      .slider-value {
+        /* display: inline-block; */
+        float: right;
+        font-weight: 400;
+        color: #666;
+        font-size: 14px;
+      }
+
+      .toggle-group {
+        display: flex;
+        gap: 10px;
+      }
+
+      .toggle-btn {
+        flex: 1;
+        padding: 10px;
+        background: #ddd;
+        border: none;
+        color: #333;
+        cursor: pointer;
+        /* border-radius: 6px; */
+        font-size: 13px;
+        font-weight: 400;
+        font-family: "Courier New", monospace;
+        transition: all 0.2s;
+        text-align: center;
+      }
+
+      .toggle-btn:hover {
+        background: #ccc;
+      }
+
+      .toggle-btn.active {
+        background: #888;
+        color: #fff;
+      }
+
+      #info {
+        position: fixed;
+        top: auto;
+        bottom: 20px;
+        left: 20px;
+        right: auto;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 15px 20px;
+        /* border-radius: 8px; */
+        z-index: 1000;
+        width: 280px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        opacity: 0;
+        transition: opacity 0.3s;
+        pointer-events: none;
+      }
+
+      #info.visible {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      #info div {
+        margin: 6px 0;
+        font-size: 13px;
+      }
+
+      #info .label {
+        color: #666;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      #info .value {
+        color: #000;
+        font-weight: 400;
+        font-size: 14px;
+      }
+
+      #container {
+        width: calc(100vw - 340px);
+        height: calc(100vh - 40px);
+        margin-left: 340px;
+        margin-top: 20px;
+      }
+
+      #grid-1d,
+      #grid-2d {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: none;
+      }
+
+      #grid-1d.active,
+      #grid-2d.active {
+        display: block;
+      }
+
+      .grid-image {
+        position: absolute;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s, z-index 0s;
+      }
+
+      .grid-image:hover {
+        transform: scale(1.5);
+        z-index: 100;
+        box-shadow: 0 8px 24px rgba(128, 128, 128, 0.5);
+      }
+
+      /* Modal styles */
+      #modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.3);
+        z-index: 2000;
+      }
+
+      #modal-overlay.active {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #modal-content {
+        background: transparent;
+        /* border-radius: 8px; */
+        padding: 20px;
+        width: 100vw;
+        height: 100vh;
+        position: relative;
+        overflow: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #modal-image {
+        max-width: 100%;
+        max-height: 100%;
+        width: 100vw;
+        height: 100vh;
+        object-fit: contain;
+        border-radius: 4px;
+      }
+
+      #modal-close {
+        display: none;
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: #ddd;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        font-size: 24px;
+        cursor: pointer;
+        color: #000;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #modal-close:hover {
+        background: #888;
+        color: #fff;
+      }
+
+      #loading {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 18px;
+        z-index: 2000;
+        color: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading"></div>
+
+    <div id="controls">
+      <h2>Controls</h2>
+
+      <div class="control-group">
+        <label>
+          Samples <span class="slider-value" id="samples-value">100</span>
+        </label>
+        <input
+          type="range"
+          id="samples-slider"
+          min="1"
+          max="1000"
+          value="100"
+          step="1"
+        />
+      </div>
+
+      <div class="control-group">
+        <label>Dimensions</label>
+        <div class="toggle-group">
+          <button class="toggle-btn" data-dimension="1">1D</button>
+          <button class="toggle-btn active" data-dimension="2">2D</button>
+          <button class="toggle-btn" data-dimension="3">3D</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Dimension Reduction Algorithm</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active" data-algo="umap">UMAP</button>
+          <button class="toggle-btn" data-algo="tsne">t-SNE</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Image Type</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active" data-imgtype="embed">
+            Embedding
+          </button>
+          <button class="toggle-btn" data-imgtype="rgb">Satellite</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="info">
+      <div><span class="label">Location</span></div>
+      <div class="value" id="info-location">—</div>
+      <div><span class="label">Land Classification</span></div>
+      <div class="value" id="info-class">—</div>
+      <div><span class="label">Region</span></div>
+      <div class="value" id="info-region">—</div>
+    </div>
+
+    <div id="container">
+      <div id="grid-1d"></div>
+      <div id="grid-2d"></div>
+      <canvas id="grid-3d"></canvas>
+    </div>
+
+    <!-- Modal for enlarged satellite patch -->
+    <div id="modal-overlay">
+      <div id="modal-content">
+        <button id="modal-close">&times;</button>
+        <img id="modal-image" src="" alt="Satellite patch" />
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -4,7 +4,8 @@ A series of experiments exploring Google DeepMind's AlphaEarth satellite embeddi
 
 ## Live Projects
 
-- **[Embedding Topography Interactive Visualization](https://elliemadsen.github.io/satellite-embeddings/dimension-reduction/point_cloud.html)** – Latent space explorer, globally sampled embeddings reduced to 3d with UMAP or t-SNE.
+- **[Embedding Distance Grid Interface](https://elliemadsen.github.io/satellite-embeddings/distance_experiment_web/index.html)** – Interactive web application for exploring globally sampled satellite embeddings as grids in 1D, 2D, and 3D. Change number of samples, reduce dimensions with UMAP or t-SNE algorithm, view satellite image or false color.
+- **[Embedding Topography Interactive Visualization](https://elliemadsen.github.io/satellite-embeddings/dimension-reduction/point_cloud.html)** – Interactive web application for exploring latent space. Globally sampled embeddings reduced to 3d with UMAP or t-SNE.
 - **[False Color Embedding Globe](https://elliemadsen.github.io/satellite-embeddings/web-maps/globe.html)** – Interactive 3D globe visualization of satellite embeddings
 - **[Earth Engine App](https://gsapp-map.projects.earthengine.app/view/sat-embeddings)** – Interactive web app for real-time analysis
 
@@ -42,6 +43,33 @@ Compares embedding spaces across years and generates large-scale similarity grid
 **Outputs:** CSV files with embedding distances, GeoJSON with sample geometries, satellite patch image files, UMAP grid layouts
 
 ![image](distance_experiment/output/400_64_10_2024/400_64_10_2024_sentinel_grid.png)
+
+---
+
+### **distance_experiment_web/** – Interactive Dimensionality Reduction Visualization
+
+Interactive web application for exploring dimensionality-reduced satellite embeddings in 1D, 2D, and 3D.
+
+- **generate_web_data.ipynb**: Preprocesses data from dimension-reduction experiments
+  - Uses Hungarian algorithm to arrange embeddings optimally in 1D, 2D (grid), and 3D (cube) layouts
+  - Supports multiple sample sizes: 1D (1-100), 2D squares (64, 144, 256, 576, 900, 1024), 3D cubes (64, 125, 216, 512, 1000)
+  - Downloads satellite imagery patches (64x64px) for both embedding visualization and RGB true color
+  - Implements multi-strategy fallback for RGB imagery (Sentinel-2 → Landsat 8) to ensure complete coverage
+  - Exports GeoJSON files with grid coordinates, classifications, and patch file references for both UMAP and t-SNE
+- **Interactive Visualization** (app.js, index.html, serve.py):
+  - Toggle between 1D (line), 2D (grid), and 3D (cube) arrangements
+  - Switch between UMAP and t-SNE reduction algorithms
+  - View embedding visualizations or RGB satellite imagery
+  - Adjustable sample count with smooth transitions
+  - 3D mode features: fixed cube size, dynamic image scaling, camera position preservation, orbit controls
+  - Modal image viewer with persistent info panel showing location, land classification, and region
+  - Three-layer caching system: HTTP headers, background preloading, and in-memory cache
+  - Hover interactions with land classification lookup and metadata display
+
+**Inputs:** Classified embeddings from dimension-reduction, Google Satellite Embeddings, Sentinel-2/Landsat-8 imagery  
+**Outputs:** GeoJSON grid layouts (1D/2D/3D), satellite patch images (embed + RGB), interactive HTML visualization
+
+![image](distance_experiment_web/screenshot.png)
 
 ---
 
