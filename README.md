@@ -15,16 +15,16 @@ A series of experiments exploring Google DeepMind's AlphaEarth satellite embeddi
 
 ### **dimension-reduction/** – Global Sampling & UMAP Projection
 
-Generates a global dataset of stratified satellite embeddings and reduces them to 2D for exploration.
+Generates a global dataset of classified satellite embeddings and reduces them to 3d, 2d, and 1d using tsne and umap.
 
-- Stratifies global sampling by land classification (snow/ice, agriculture, urban, forest, water) using Copernicus land cover
-- Samples 1000–5000 locations globally with equal representation per category
-- Extracts 64D embedding vectors for each location using Earth Engine
-- Applies UMAP dimensionality reduction to project embeddings to 2D
-- Creates interactive 3D point cloud visualization with Plotly
+- Labels global sampling by land classification using Copernicus land cover and geographical region
+- Samples 1000–5000 locations globally, extract embedding vectors
+- Applies UMAP or t-SNE dimensionality reduction to project embeddings to 3d, 2d, and 1d
+- Writes the data to geojson in data/
+- html + js read the data and produce interactive data viz using three.js showing animation from world to embedding space.
 
 **Inputs:** Google Satellite Embedding V1 (2024), Copernicus Global Land Cover, UN shapefile  
-**Outputs:** GeoJSON files with embeddings + UMAP coords, HTML point cloud visualization, classified samples by land type
+**Outputs:** GeoJSON files with embeddings coords, HTML point cloud visualization
 
 ![image](dimension-reduction/output/website-screenshot.png)
 
@@ -40,7 +40,7 @@ Compares embedding spaces across years and generates large-scale similarity grid
 - Outputs satellite patches and metadata for each location
 
 **Inputs:** Random or stratified coordinates, Google Satellite Embeddings (multi-year)  
-**Outputs:** CSV files with embedding distances, GeoJSON with sample geometries, satellite patch image files, UMAP grid layouts
+**Outputs:** csv/json, satellite patch image files, static grid images
 
 ![image](distance_experiment/output/400_64_10_2024/400_64_10_2024_sentinel_grid.png)
 
@@ -51,26 +51,34 @@ Compares embedding spaces across years and generates large-scale similarity grid
 Interactive web application for exploring dimensionality-reduced satellite embeddings in 1D, 2D, and 3D with live false color band selection.
 
 - **generate_web_data.ipynb**: Preprocesses data from dimension-reduction experiments
-  - Uses Hungarian algorithm to arrange embeddings optimally in 1D, 2D (grid), and 3D (cube) layouts
-  - Supports multiple sample sizes: 1D (1-100), 2D squares (64, 144, 256, 576, 900, 1024), 3D cubes (64, 125, 216, 512, 1000)
-  - Downloads **62 false color band combinations** per location (all consecutive triplets: A00-A01-A02 through A61-A62-A63)
-  - Downloads true color RGB satellite imagery from Sentinel-2 or Landsat 8
-  - Exports data to tile-based structure: `tiles/{index:04d}/{index}_A{b1}_A{b2}_A{b3}.png`
-  - Exports GeoJSON files with grid coordinates, classifications, and references for both UMAP and t-SNE
+  - Uses Hungarian algorithm to arrange embeddings optimally in 1D, 2D and 3D grid layouts
+  - Downloads 62 false color band combinations per location (consecutive triplets: A00-A01-A02 through A61-A62-A63) and true color RGB satellite imagery
+  - Exports data tiles (`tiles/{index:04d}/{index}_A{b1}_A{b2}_A{b3}.png`) and geojson files with grid coordinates
 - **Interactive Visualization** (index.html, styles.css, app.js):
-  - **Band selector**: Vertical interactive slider to select 3 consecutive bands from 64 available (A00-A63) with live RGB updates
-  - Toggle between 1D (line), 2D (grid), and 3D (cube) arrangements
-  - Switch between UMAP and t-SNE reduction algorithms
-  - Switch between true color satellite imagery or false color embedding bands
-  - Adjustable sample count with smooth transitions
-  - 3D mode: OrbitControls, proper memory management, hover highlights, camera position preservation
-  - Modal image viewer with band selector integration for live false color changes during closeup
-  - Hover interactions showing location, land classification, and region metadata
+  - Toggle between 1D / 2D / 3D arrangements, UMAP / t-SNE, true color satellite imagery / false color embedding bands
+  - Band selector: Vertical interactive slider to select 3 consecutive bands from 64 available (A00-A63) with live RGB updates
+  - Modal image viewer, hover popup metadata interaction, n samples slider, etc
 
-**Inputs:** Classified embeddings from dimension-reduction, Google Satellite Embeddings, Sentinel-2/Landsat-8 imagery  
-**Outputs:** Tile directories with 62 band combinations + RGB per location, GeoJSON grid layouts (1D/2D/3D), interactive HTML visualization
+**Inputs:** Classified embeddings from dimension-reduction/ , Google Satellite Embeddings, Sentinel-2/Landsat-8 imagery  
+**Outputs:** Tile directories with 62 band combinations + RGB per location, geojson, interactive HTML visualization
 
 ![image](distance_experiment_web/screenshot.png)
+
+---
+
+### **distance-correlation/** – Geographic vs Embedding Distance Analysis
+
+Investigates the relationship between geographic proximity and embedding similarity to identify anomalous location pairs.
+
+- **distance-similarity-correlation.ipynb**: Comprehensive analysis of geographic distance vs embedding similarity patterns
+  - Samples 1000 locations from 5000 classified embeddings, computes pairwise distances and similarities for 5000 random pairs
+  - Identifies Far but Similar and Near but Different outlier pairs
+  - Creates scatter plots showing the negative correlation between distance and similarity
+
+**Inputs:** 5000 classified embeddings from dimension-reduction/...
+**Outputs:** PNG visualizations (scatter/heatmap with/without anomalies), embedding dimension comparison plots, detailed statistical analysis of anomalous pairs
+
+![image](distance-correlation/geographic_vs_embedding_distance.png)
 
 ---
 
