@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Embedding Vector Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        background: #ffffff;
+        color: #000000;
+        overflow: hidden;
+      }
+
+      #canvas-container {
+        width: 100vw;
+        height: 100vh;
+      }
+
+      #info {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 15px;
+        border: 1px solid #000;
+        font-size: 14px;
+        max-width: 300px;
+      }
+
+      #info h3 {
+        margin: 0 0 10px 0;
+        font-size: 16px;
+      }
+
+      #info ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      #info li {
+        margin: 5px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="canvas-container"></div>
+    <div id="info">
+      <h3>Embedding Vectors</h3>
+      <label>
+        <input type="checkbox" id="textToggle" checked /> Show Text & Labels
+      </label>
+      <ul id="location-list"></ul>
+      <p style="margin-top: 10px; font-size: 12px">
+        Drag to rotate, scroll to zoom
+      </p>
+    </div>
+
+    <script>
+      // Data from meta.md
+      const data = [
+        {
+          location: "Atacama Desert, Chile",
+          latitude: -24.3,
+          longitude: -69.1,
+          vector: [0.92, 0.05, 0.01],
+        },
+        {
+          location: "Amazon Rainforest, Brazil",
+          latitude: -3.1,
+          longitude: -60.0,
+          vector: [0.35, 0.94, 0.98],
+        },
+        {
+          location: "Alpine Meadow, Swiss Alps",
+          latitude: 46.6,
+          longitude: 8.3,
+          vector: [0.88, 0.62, 0.42],
+        },
+        {
+          location: "Coastal Mangroves, Vietnam",
+          latitude: 9.6,
+          longitude: 105.9,
+          vector: [0.08, 0.91, 0.76],
+        },
+      ];
+
+      // Scene setup
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xffffff);
+
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000,
+      );
+      camera.position.set(3, 3, 3);
+      camera.lookAt(0, 0, 0);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document
+        .getElementById("canvas-container")
+        .appendChild(renderer.domElement);
+
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+
+      // Create custom grey axes
+      const axesGroup = new THREE.Group();
+
+      // X axis (grey)
+      const xGeometry = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(1, 0, 0),
+      ]);
+      const xMaterial = new THREE.LineBasicMaterial({ color: 0x888888 });
+      const xAxis = new THREE.Line(xGeometry, xMaterial);
+      xAxis.renderOrder = 0; // Render above grid but below arrows
+      axesGroup.add(xAxis);
+
+      // Y axis (grey)
+      const yGeometry = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(0, 1, 0),
+      ]);
+      const yMaterial = new THREE.LineBasicMaterial({ color: 0x888888 });
+      const yAxis = new THREE.Line(yGeometry, yMaterial);
+      yAxis.renderOrder = 0; // Render above grid but below arrows
+      axesGroup.add(yAxis);
+
+      // Z axis (grey)
+      const zGeometry = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(0, 0, 1),
+      ]);
+      const zMaterial = new THREE.LineBasicMaterial({ color: 0x888888 });
+      const zAxis = new THREE.Line(zGeometry, zMaterial);
+      zAxis.renderOrder = 0; // Render above grid but below arrows
+      axesGroup.add(zAxis);
+
+      scene.add(axesGroup);
+
+      // Create axis labels with higher quality and normal font weight
+      function createTextLabel(text, position) {
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        canvas.width = 1024;
+        canvas.height = 512;
+        context.imageSmoothingQuality = "high";
+        context.fillStyle = "#888888";
+        context.font = "96px Arial";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText(text, 512, 256);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.minFilter = THREE.LinearFilter;
+        const sprite = new THREE.Sprite(
+          new THREE.SpriteMaterial({
+            map: texture,
+            transparent: true,
+            alphaTest: 0.1,
+          }),
+        );
+        sprite.position.copy(position);
+        sprite.scale.set(0.6, 0.3, 1);
+        return sprite;
+      }
+
+      const xLabel = createTextLabel(
+        "X (Elevation)",
+        new THREE.Vector3(1.1, 0, 0),
+      );
+      const yLabel = createTextLabel(
+        "Y (Humidity)",
+        new THREE.Vector3(0, 1.1, 0),
+      );
+      const zLabel = createTextLabel(
+        "Z (Tree Coverage)",
+        new THREE.Vector3(0, 0, 1.1),
+      );
+
+      scene.add(xLabel);
+      scene.add(yLabel);
+      scene.add(zLabel);
+
+      // Create cube outline (just the edges)
+      const gridGroup = new THREE.Group();
+      const gridColor = 0xf0f0f0;
+      const gridMaterial = new THREE.LineBasicMaterial({ color: gridColor });
+
+      // Define the 8 corners of the unit cube
+      const corners = [
+        [0, 0, 0],
+        [1, 0, 0],
+        [1, 1, 0],
+        [0, 1, 0], // bottom face
+        [0, 0, 1],
+        [1, 0, 1],
+        [1, 1, 1],
+        [0, 1, 1], // top face
+      ];
+
+      // Define the 12 edges of the cube
+      const edges = [
+        [0, 1],
+        [1, 2],
+        [2, 3],
+        [3, 0], // bottom face edges
+        [4, 5],
+        [5, 6],
+        [6, 7],
+        [7, 4], // top face edges
+        [0, 4],
+        [1, 5],
+        [2, 6],
+        [3, 7], // vertical edges
+      ];
+
+      // Create lines for each edge
+      edges.forEach(([start, end]) => {
+        const geometry = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(...corners[start]),
+          new THREE.Vector3(...corners[end]),
+        ]);
+        const material = new THREE.LineBasicMaterial({
+          color: gridColor,
+          depthTest: false, // Disable depth test to prevent flickering
+        });
+        const line = new THREE.Line(geometry, material);
+        line.renderOrder = -1; // Render behind other objects
+        gridGroup.add(line);
+      });
+
+      scene.add(gridGroup);
+
+      // Material for vectors - simple black vectors
+      const vectorMaterial = new THREE.LineBasicMaterial({
+        color: 0x000000,
+        linewidth: 2,
+      });
+
+      // Create vectors and labels
+      const locationList = document.getElementById("location-list");
+
+      // Toggle functionality
+      const textToggle = document.getElementById("textToggle");
+      const textElements = [];
+
+      data.forEach((item, index) => {
+        const [x, y, z] = item.vector;
+        const dir = new THREE.Vector3(x, y, z);
+        const length = dir.length();
+        dir.normalize();
+
+        // Use ArrowHelper for proper 3D arrow direction
+        const arrow = new THREE.ArrowHelper(
+          dir,
+          new THREE.Vector3(0, 0, 0),
+          length,
+          0x000000,
+          0.04,
+          0.02,
+        );
+        arrow.renderOrder = 1;
+        scene.add(arrow);
+
+        // Text label with transparent background
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = 1024;
+        canvas.height = 256;
+        ctx.imageSmoothingQuality = "high";
+        ctx.fillStyle = "#000000";
+        ctx.font = "56px Arial";
+        ctx.fillText(item.location, 20, 128);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.minFilter = THREE.LinearFilter;
+        const label = new THREE.Sprite(
+          new THREE.SpriteMaterial({
+            map: texture,
+            transparent: true,
+            alphaTest: 0.1,
+          }),
+        );
+        label.position.set(x + 0.1, y + 0.1, z);
+        label.scale.set(0.8, 0.2, 1);
+        label.renderOrder = 2;
+        scene.add(label);
+        textElements.push(label);
+
+        const li = document.createElement("li");
+        li.innerHTML = `● ${
+          item.location
+        }<br><small style="margin-left: 15px;">[${x.toFixed(2)}, ${y.toFixed(
+          2,
+        )}, ${z.toFixed(2)}]</small>`;
+        locationList.appendChild(li);
+      });
+
+      textElements.push(xLabel, yLabel, zLabel);
+      textToggle.addEventListener("change", () =>
+        textElements.forEach((el) => (el.visible = textToggle.checked)),
+      );
+
+      // Animation loop
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // Handle window resize
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+  </body>
+</html>

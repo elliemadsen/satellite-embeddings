@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -37,8 +37,12 @@
     <script>
       const width = 1000;
       const height = 600;
-      const a = [-156.6759099098129, 62.717390421233034];
-      const b = [-39.64189749871104, 74.54031702302196];
+      const a = [-70.5832, -5.8461]; // brazil
+      const b = [23.4778, -0.5579]; // drc
+
+      // greenland/alaska
+      // const a = [-156.6759099098129, 62.717390421233034];
+      // const b = [-39.64189749871104, 74.54031702302196];
       const sphere = { type: "Sphere" };
       const showOverlay = true;
 
@@ -72,7 +76,7 @@
           svg
             .append("g")
             .attr("fill", "none")
-            .attr("stroke", "#9585de")
+            .attr("stroke", "#85e085")
             .selectAll("path")
             .data(d3.range(10, 180, 10))
             .join("path")
@@ -81,7 +85,7 @@
           svg
             .append("g")
             .attr("fill", "none")
-            .attr("stroke", "#25c425") // green
+            .attr("stroke", "#80ccff") // blue
             .selectAll("path")
             .data(d3.range(10, 180, 10))
             .join("path")
