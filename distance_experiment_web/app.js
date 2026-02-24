@@ -1,8 +1,11 @@
 // Global state
 const SQUARE_VALUES = [64, 144, 256, 576, 900, 1024]; // Perfect squares for 2D
 const CUBE_VALUES = [64, 125, 216, 512, 1000];   // Perfect cubes for 3D
+const MAX_IMAGE_CACHE_SIZE = 500; // Limit cache to prevent memory issues
 let dataCache = {}; // Cache loaded datasets
 let imageCache = new Map(); // Cache preloaded images
+let imageCacheKeys = []; // Track insertion order for LRU eviction
+let preloadedDatasets = new Set(); // Track which datasets have been preloaded
 let currentN = 64;
 let currentDimension = 2;
 let currentAlgorithm = 'umap';
@@ -11,6 +14,12 @@ let currentBandStart = 0; // Starting band for embedding visualization (0-61)
 let currentModalSample = null; // Currently displayed sample in modal
 let scene, camera, renderer, controls;
 let modalOpen = false; // Track if modal is open
+let canvas3DMouseMove = null; // Store mousemove handler reference
+let canvas3DClick = null; // Store click handler reference
+let cameraControlMode = 'orbit'; // 'orbit' or 'fly'
+let keyboardState = {}; // Track keyboard input
+let keyboardHandler = null; // Store keyboard event handler
+let cameraSpeed = 0.3; // Camera movement speed
 // Land classification legend
 const LAND_CLASSIFICATION_LEGEND = {
         0: ["#949C9F", "Unknown / No Data"],
@@ -93,7 +102,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Preload image into cache
+// Preload image into cache with size limit
 function preloadImage(src) {
     if (imageCache.has(src)) {
         return Promise.resolve(imageCache.get(src));
@@ -102,7 +111,13 @@ function preloadImage(src) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = () => {
+            // Implement LRU cache eviction
+            if (imageCache.size >= MAX_IMAGE_CACHE_SIZE) {
+                const oldestKey = imageCacheKeys.shift();
+                imageCache.delete(oldestKey);
+            }
             imageCache.set(src, img);
+            imageCacheKeys.push(src);
             resolve(img);
         };
         img.onerror = reject;
@@ -110,19 +125,31 @@ function preloadImage(src) {
     });
 }
 
-// Preload all images for a dataset
+// Preload images in smaller batches to prevent blocking
 async function preloadImagesForData(data, imageType, bandStart = 0) {
-    const imagePromises = data.map(sample => {
-        const imageSrc = getImageSrc(sample, imageType, bandStart);
-        return preloadImage(imageSrc);
-    });
+    const batchSize = 20; // Load 20 at a time
+    const datasetKey = `${data.length}_${imageType}_${bandStart}`;
     
-    try {
-        await Promise.all(imagePromises);
-        console.log(`Preloaded ${imagePromises.length} images`);
-    } catch (error) {
-        console.warn('Some images failed to preload:', error);
+    // Skip if already preloaded
+    if (preloadedDatasets.has(datasetKey)) {
+        return;
     }
+    
+    // Only preload first 100 images for large datasets
+    const samplesToPreload = data.slice(0, Math.min(100, data.length));
+    
+    for (let i = 0; i < samplesToPreload.length; i += batchSize) {
+        const batch = samplesToPreload.slice(i, i + batchSize);
+        const promises = batch.map(sample => {
+            const imageSrc = getImageSrc(sample, imageType, bandStart);
+            return preloadImage(imageSrc).catch(() => {}); // Ignore failures
+        });
+        await Promise.all(promises);
+        // Small delay between batches to prevent blocking
+        await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    
+    preloadedDatasets.add(datasetKey);
 }
 
 // Load GeoJSON data for specific N
@@ -142,10 +169,9 @@ async function loadData(n) {
         }));
         dataCache[n] = data;
         
-        // Preload images in background for both image types
+        // Only preload current image type
         setTimeout(() => {
-            preloadImagesForData(data, 'embed');
-            preloadImagesForData(data, 'rgb');
+            preloadImagesForData(data, currentImageType, currentBandStart);
         }, 100);
         
         return data;
@@ -258,7 +284,7 @@ document.getElementById('samples-slider').addEventListener('input', async (e) =>
     
     // Update display
     document.getElementById('samples-value').textContent = requestedN;
-    render();
+    scheduleRender();
 });
 
 // Dimension toggle buttons
@@ -303,6 +329,18 @@ document.querySelectorAll('[data-dimension]').forEach(btn => {
         }
         
         document.getElementById('samples-value').textContent = currentN;
+        
+        // Show/hide camera control toggle and speed slider
+        const cameraControlGroup = document.getElementById('camera-control-group');
+        const cameraSpeedGroup = document.getElementById('camera-speed-group');
+        if (currentDimension === 3) {
+            cameraControlGroup.style.display = 'block';
+            cameraSpeedGroup.style.display = 'block';
+        } else {
+            cameraControlGroup.style.display = 'none';
+            cameraSpeedGroup.style.display = 'none';
+        }
+        
         render();
     });
 });
@@ -319,13 +357,41 @@ document.querySelectorAll('[data-algo]').forEach(btn => {
 
 // Image type toggle buttons
 document.querySelectorAll('[data-imgtype]').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
         document.querySelectorAll('[data-imgtype]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentImageType = btn.dataset.imgtype;
         updateBandSelectorVisibility();
+        
+        // Preload images for new type
+        const datasetN = currentDimension === 1 ? 1000 : currentN;
+        if (dataCache[datasetN]) {
+            setTimeout(() => {
+                preloadImagesForData(dataCache[datasetN], currentImageType, currentBandStart);
+            }, 100);
+        }
+        
         render();
     });
+});
+
+// Camera control toggle buttons
+document.querySelectorAll('[data-camera]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-camera]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        cameraControlMode = btn.dataset.camera;
+        
+        if (currentDimension === 3 && controls) {
+            controls.enabled = (cameraControlMode === 'orbit');
+        }
+    });
+});
+
+// Camera speed slider
+document.getElementById('camera-speed-slider').addEventListener('input', (e) => {
+    cameraSpeed = parseFloat(e.target.value);
+    document.getElementById('camera-speed-value').textContent = cameraSpeed.toFixed(2);
 });
 
 // Helper function to get correct image source based on image type and band selection
@@ -364,6 +430,15 @@ function hideInfo() {
     if (!modalOpen) {
         document.getElementById('info').classList.remove('visible');
     }
+}
+
+// Debounce render calls
+let renderTimeout = null;
+function scheduleRender() {
+    if (renderTimeout) {
+        clearTimeout(renderTimeout);
+    }
+    renderTimeout = setTimeout(render, 50);
 }
 
 // Render based on current settings
@@ -500,6 +575,28 @@ function render3D(samples) {
         savedControlsTarget = controls.target.clone();
     }
     
+    // Cancel any existing animation frame
+    if (window.animationFrameId) {
+        cancelAnimationFrame(window.animationFrameId);
+        window.animationFrameId = null;
+    }
+    
+    // Remove previous event listeners
+    if (renderer && renderer.domElement && canvas3DMouseMove) {
+        renderer.domElement.removeEventListener('mousemove', canvas3DMouseMove);
+        renderer.domElement.removeEventListener('click', canvas3DClick);
+        canvas3DMouseMove = null;
+        canvas3DClick = null;
+    }
+    
+    // Remove keyboard listeners
+    if (keyboardHandler) {
+        document.removeEventListener('keydown', keyboardHandler.onKeyDown);
+        document.removeEventListener('keyup', keyboardHandler.onKeyUp);
+        keyboardHandler = null;
+    }
+    keyboardState = {};
+    
     // Clean up previous scene properly
     if (scene) {
         // Dispose of all geometries, materials, and textures
@@ -510,11 +607,15 @@ function render3D(samples) {
             if (object.material) {
                 if (Array.isArray(object.material)) {
                     object.material.forEach(material => {
-                        if (material.map) material.map.dispose();
+                        if (material.map) {
+                            material.map.dispose();
+                        }
                         material.dispose();
                     });
                 } else {
-                    if (object.material.map) object.material.map.dispose();
+                    if (object.material.map) {
+                        object.material.map.dispose();
+                    }
                     object.material.dispose();
                 }
             }
@@ -582,6 +683,28 @@ function render3D(samples) {
         controls.target.set(fixedTotalSize / 2, fixedTotalSize / 2 - 2, fixedTotalSize / 2);
     }
     controls.enableDamping = true;
+    controls.enabled = (cameraControlMode === 'orbit');
+    
+    // Setup keyboard controls
+    keyboardState = {};
+    if (keyboardHandler) {
+        document.removeEventListener('keydown', keyboardHandler);
+        document.removeEventListener('keyup', keyboardHandler);
+    }
+    
+    const onKeyDown = (e) => {
+        if (!modalOpen) {
+            keyboardState[e.key.toLowerCase()] = true;
+        }
+    };
+    
+    const onKeyUp = (e) => {
+        keyboardState[e.key.toLowerCase()] = false;
+    };
+    
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keyup', onKeyUp);
+    keyboardHandler = { onKeyDown, onKeyUp };
     
     // Add lights
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -681,13 +804,94 @@ function render3D(samples) {
         }
     }
     
-    renderer.domElement.addEventListener('mousemove', onMouseMove);
-    renderer.domElement.addEventListener('click', onMouseClick);
+    // Store references for cleanup
+    canvas3DMouseMove = onMouseMove;
+    canvas3DClick = onMouseClick;
+    
+    renderer.domElement.addEventListener('mousemove', canvas3DMouseMove);
+    renderer.domElement.addEventListener('click', canvas3DClick);
     
     // Animation loop
     function animate() {
-        requestAnimationFrame(animate);
-        controls.update();
+        window.animationFrameId = requestAnimationFrame(animate);
+        
+        // Handle keyboard camera movement
+        const rotateSpeed = 0.02;
+        
+        // Get camera direction vectors
+        const forward = new THREE.Vector3();
+        camera.getWorldDirection(forward);
+        const right = new THREE.Vector3();
+        right.crossVectors(forward, camera.up).normalize();
+        
+        if (cameraControlMode === 'fly') {
+            // Fly mode: Arrow keys for movement
+            if (keyboardState['arrowup']) {
+                camera.position.addScaledVector(forward, cameraSpeed);
+            }
+            if (keyboardState['arrowdown']) {
+                camera.position.addScaledVector(forward, -cameraSpeed);
+            }
+            if (keyboardState['arrowleft']) {
+                camera.position.addScaledVector(right, -cameraSpeed);
+            }
+            if (keyboardState['arrowright']) {
+                camera.position.addScaledVector(right, cameraSpeed);
+            }
+            
+            // Q/E for up/down
+            if (keyboardState['q']) {
+                camera.position.y -= cameraSpeed;
+            }
+            if (keyboardState['e']) {
+                camera.position.y += cameraSpeed;
+            }
+            
+            // WASD for rotation in fly mode
+            if (keyboardState['a']) {
+                camera.rotation.y += rotateSpeed;
+            }
+            if (keyboardState['d']) {
+                camera.rotation.y -= rotateSpeed;
+            }
+            if (keyboardState['w']) {
+                camera.rotation.x += rotateSpeed;
+            }
+            if (keyboardState['s']) {
+                camera.rotation.x -= rotateSpeed;
+            }
+        } else if (cameraControlMode === 'orbit') {
+            // Orbit mode: WASD for movement, orbit controls still enabled
+            if (keyboardState['w']) {
+                camera.position.addScaledVector(forward, cameraSpeed);
+                controls.target.addScaledVector(forward, cameraSpeed);
+            }
+            if (keyboardState['s']) {
+                camera.position.addScaledVector(forward, -cameraSpeed);
+                controls.target.addScaledVector(forward, -cameraSpeed);
+            }
+            if (keyboardState['a']) {
+                camera.position.addScaledVector(right, -cameraSpeed);
+                controls.target.addScaledVector(right, -cameraSpeed);
+            }
+            if (keyboardState['d']) {
+                camera.position.addScaledVector(right, cameraSpeed);
+                controls.target.addScaledVector(right, cameraSpeed);
+            }
+            
+            // Q/E for up/down in orbit mode too
+            if (keyboardState['q']) {
+                camera.position.y -= cameraSpeed;
+                controls.target.y -= cameraSpeed;
+            }
+            if (keyboardState['e']) {
+                camera.position.y += cameraSpeed;
+                controls.target.y += cameraSpeed;
+            }
+            
+            controls.update();
+        }
+        
         renderer.render(scene, camera);
     }
     
@@ -706,6 +910,9 @@ window.addEventListener('resize', () => {
     } else {
         render();
     }
+    
+    // Reinitialize band selector on resize to adjust to new height
+    initBandSelector();
 });
 
 // Band selector functions
@@ -713,11 +920,23 @@ function initBandSelector() {
     const selector = document.getElementById('band-selector');
     const scale = document.getElementById('band-scale');
     const handle = document.getElementById('band-handle');
-    const bandValue = document.getElementById('band-value');
     
-    const padding = 20; // Top/bottom padding from CSS
-    const availableHeight = 800 - (padding * 2); // 760px usable space
-    const tickSpacing = availableHeight / 63; // Space between each band number
+    console.log('[Band Selector] Init - handle element:', handle);
+    
+    // Helper function to get current dimensions
+    const getDimensions = () => {
+        const padding = 20;
+        const viewportHeight = window.innerHeight;
+        const availableHeight = viewportHeight - (padding * 2);
+        const tickSpacing = availableHeight / 63;
+        return { padding, availableHeight, tickSpacing };
+    };
+    
+    // Calculate initial dimensions
+    let dims = getDimensions();
+    
+    // Clear existing elements
+    scale.innerHTML = '';
     
     // Create tick marks for 0-63
     const tickElements = [];
@@ -725,7 +944,8 @@ function initBandSelector() {
         const tick = document.createElement('div');
         tick.className = 'band-tick';
         tick.textContent = String(i).padStart(2, '0');
-        tick.style.top = `${padding + (i * tickSpacing)}px`;
+        tick.style.top = `${dims.padding + (i * dims.tickSpacing)}px`;
+        tick.style.pointerEvents = 'none'; // Prevent ticks from blocking handle
         scale.appendChild(tick);
         tickElements.push(tick);
     }
@@ -737,27 +957,29 @@ function initBandSelector() {
         const elem = document.createElement('div');
         elem.className = `rgb-label ${label.toLowerCase()}`;
         elem.textContent = label;
+        elem.style.pointerEvents = 'none'; // Prevent labels from blocking handle
         scale.appendChild(elem);
         rgbElements.push(elem);
     });
     
     let isDragging = false;
     const minBand = 0;
-    const maxBand = 61; // 0-61 allows A0-A1-A2 through A61-A62-A63
-    const handleHeight = tickSpacing * 3; // Height to cover exactly 3 bands
+    const maxBand = 61;
     
     function updateHandlePosition(band) {
-        // Position handle so it centers on the 3 selected bands
-        const position = padding + (band * tickSpacing);
-        handle.style.top = `${position}px`;
-        handle.style.height = `${handleHeight}px`;
+        dims = getDimensions();
+        const handleHeight = dims.tickSpacing * 3;
+        const position = dims.padding + (band * dims.tickSpacing);
         
-        // Update RGB label positions to align with selected bands
+        // Use the fresh handle from DOM
+        const currentHandle = document.getElementById('band-handle');
+        currentHandle.style.top = `${position}px`;
+        currentHandle.style.height = `${handleHeight}px`;
+        
         rgbElements.forEach((elem, idx) => {
-            elem.style.top = `${padding + ((band + idx) * tickSpacing)}px`;
+            elem.style.top = `${dims.padding + ((band + idx) * dims.tickSpacing)}px`;
         });
         
-        // Highlight selected band numbers
         tickElements.forEach((tick, idx) => {
             if (idx >= band && idx <= band + 2) {
                 tick.classList.add('selected');
@@ -766,7 +988,6 @@ function initBandSelector() {
             }
         });
         
-        // Update modal image if modal is open
         if (modalOpen && currentModalSample) {
             const modalImg = document.getElementById('modal-image');
             modalImg.src = getImageSrc(currentModalSample);
@@ -774,39 +995,56 @@ function initBandSelector() {
     }
     
     function handleMove(clientY) {
+        dims = getDimensions();
         const rect = selector.getBoundingClientRect();
-        let y = clientY - rect.top - padding; // Adjust for padding
-        const maxY = maxBand * tickSpacing; // Allow handle to reach band 61
+        let y = clientY - rect.top - dims.padding;
+        const maxY = maxBand * dims.tickSpacing;
         y = Math.max(0, Math.min(y, maxY));
         
-        const band = Math.round(y / tickSpacing);
+        const band = Math.round(y / dims.tickSpacing);
         currentBandStart = Math.max(minBand, Math.min(band, maxBand));
         
         updateHandlePosition(currentBandStart);
-        render();
+        scheduleRender();
     }
     
-    handle.addEventListener('mousedown', (e) => {
+    // Clone handle to remove any existing event listeners
+    const newHandle = handle.cloneNode(true);
+    handle.parentNode.replaceChild(newHandle, handle);
+    
+    console.log('[Band Selector] Handle after clone:', newHandle, 'ID:', newHandle.id);
+    
+    // Attach listeners to the fresh handle
+    newHandle.addEventListener('mousedown', (e) => {
+        console.log('[Band Selector] Handle mousedown - starting drag');
         isDragging = true;
         e.preventDefault();
+        e.stopPropagation();
     });
     
     document.addEventListener('mousemove', (e) => {
         if (isDragging) {
+            console.log('[Band Selector] Dragging at clientY:', e.clientY);
             handleMove(e.clientY);
         }
     });
     
     document.addEventListener('mouseup', () => {
-        isDragging = false;
-    });
-    
-    selector.addEventListener('click', (e) => {
-        if (e.target !== handle && !handle.contains(e.target)) {
-            handleMove(e.clientY);
+        if (isDragging) {
+            console.log('[Band Selector] Drag ended');
+            isDragging = false;
         }
     });
     
+    selector.addEventListener('click', (e) => {
+        if (e.target !== newHandle && !newHandle.contains(e.target)) {
+            console.log('[Band Selector] Selector clicked');
+            handleMove(e.clientY);
+        }
+    });
+        dims = getDimensions();
+    
+    // Initialize handle position
     updateHandlePosition(currentBandStart);
 }
 

@@ -26,6 +26,7 @@ body {
   flex-direction: column;
   padding: 20px;
   overflow-y: auto;
+  max-height: 100vh;
 }
 
 #middle-column {
@@ -44,9 +45,10 @@ body {
 
 #controls {
   background: rgba(255, 255, 255, 0.95);
-  padding: 25px;
+  padding: 20px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
+  flex-shrink: 0;
 }
 
 #controls h2 {
@@ -60,7 +62,7 @@ body {
 }
 
 .control-group {
-  margin-bottom: 22px;
+  margin-bottom: 18px;
 }
 
 .control-group label {
@@ -284,7 +286,7 @@ body {
 #band-selector {
   text-transform: uppercase;
   width: 180px;
-  height: 800px;
+  height: 100vh;
   background: #ffffff;
   display: none;
   position: relative;
