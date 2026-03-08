@@ -20,6 +20,7 @@ let cameraControlMode = 'orbit'; // 'orbit' or 'fly'
 let keyboardState = {}; // Track keyboard input
 let keyboardHandler = null; // Store keyboard event handler
 let cameraSpeed = 0.3; // Camera movement speed
+let gapSize = 3; // Gap in px between images in 2D grid
 // Land classification legend
 const LAND_CLASSIFICATION_LEGEND = {
         0: ["#949C9F", "Unknown / No Data"],
@@ -333,12 +334,23 @@ document.querySelectorAll('[data-dimension]').forEach(btn => {
         // Show/hide camera control toggle and speed slider
         const cameraControlGroup = document.getElementById('camera-control-group');
         const cameraSpeedGroup = document.getElementById('camera-speed-group');
+        const gapControlGroup = document.getElementById('gap-control-group');
+        const saveBtn = document.getElementById('save-btn');
         if (currentDimension === 3) {
             cameraControlGroup.style.display = 'block';
             cameraSpeedGroup.style.display = 'block';
+            gapControlGroup.style.display = 'none';
+            saveBtn.style.display = 'none';
+        } else if (currentDimension === 2) {
+            cameraControlGroup.style.display = 'none';
+            cameraSpeedGroup.style.display = 'none';
+            gapControlGroup.style.display = 'block';
+            saveBtn.style.display = 'block';
         } else {
             cameraControlGroup.style.display = 'none';
             cameraSpeedGroup.style.display = 'none';
+            gapControlGroup.style.display = 'none';
+            saveBtn.style.display = 'none';
         }
         
         render();
@@ -393,6 +405,83 @@ document.getElementById('camera-speed-slider').addEventListener('input', (e) => 
     cameraSpeed = parseFloat(e.target.value);
     document.getElementById('camera-speed-value').textContent = cameraSpeed.toFixed(2);
 });
+
+// Gap size slider
+document.getElementById('gap-slider').addEventListener('input', (e) => {
+    gapSize = parseInt(e.target.value);
+    document.getElementById('gap-value').textContent = gapSize;
+    if (currentDimension === 2) render();
+});
+
+// Save button — downloads the current 2D grid as a high-quality PNG
+document.getElementById('save-btn').addEventListener('click', () => {
+    if (currentDimension !== 2) return;
+    saveImage2D();
+});
+
+function saveImage2D() {
+    const container = document.getElementById('grid-2d');
+    const images = Array.from(container.querySelectorAll('img'));
+    if (images.length === 0) return;
+
+    // Find pixel bounds of all rendered images
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    images.forEach(img => {
+        const x = parseFloat(img.style.left);
+        const y = parseFloat(img.style.top);
+        const w = parseFloat(img.style.width);
+        const h = parseFloat(img.style.height);
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x + w);
+        maxY = Math.max(maxY, y + h);
+    });
+
+    const scale = 4; // 4× for high-quality output
+    const canvasWidth  = Math.ceil((maxX - minX) * scale);
+    const canvasHeight = Math.ceil((maxY - minY) * scale);
+
+    const canvas = document.createElement('canvas');
+    canvas.width  = canvasWidth;
+    canvas.height = canvasHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // Draw each visible image — they are already loaded in the DOM
+    let pending = images.length;
+    function tryDownload() {
+        pending--;
+        if (pending === 0) {
+            const link = document.createElement('a');
+            const bandSuffix = currentImageType === 'embed'
+                ? `_A${currentBandStart}-A${currentBandStart + 2}`
+                : '_rgb';
+            link.download = `satellite-grid-${currentAlgorithm}-${currentN}${bandSuffix}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    }
+
+    images.forEach(img => {
+        const x = (parseFloat(img.style.left) - minX) * scale;
+        const y = (parseFloat(img.style.top)  - minY) * scale;
+        const w = parseFloat(img.style.width)  * scale;
+        const h = parseFloat(img.style.height) * scale;
+
+        if (img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, x, y, w, h);
+            tryDownload();
+        } else {
+            // Fallback: reload with crossOrigin in case the image isn't ready
+            const tmp = new Image();
+            tmp.crossOrigin = 'anonymous';
+            tmp.onload  = () => { ctx.drawImage(tmp, x, y, w, h); tryDownload(); };
+            tmp.onerror = () => { tryDownload(); }; // Skip broken images
+            tmp.src = img.src;
+        }
+    });
+}
 
 // Helper function to get correct image source based on image type and band selection
 function getImageSrc(sample, imageType = currentImageType, bandStart = currentBandStart) {
@@ -530,7 +619,7 @@ function render2D(samples) {
     const containerWidth = middleColumn.clientWidth;
     const containerHeight = middleColumn.clientHeight;
     const buffer = 20; // Fixed buffer around grid
-    const gap = 3;
+    const gap = gapSize;
     
     // Calculate image size to fit grid with buffer
     const availableWidth = containerWidth - buffer * 2;

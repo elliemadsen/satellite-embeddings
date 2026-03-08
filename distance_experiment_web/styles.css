@@ -135,6 +135,33 @@ body {
   color: #fff;
 }
 
+.action-btn {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background: #333;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 400;
+  font-family: "Courier New", monospace;
+  text-align: center;
+  letter-spacing: 0.5px;
+  transition: background 0.2s;
+  margin-top: 4px;
+}
+
+.action-btn:hover {
+  background: #111;
+}
+
+.action-btn:disabled {
+  background: #bbb;
+  cursor: not-allowed;
+  color: #fff;
+}
+
 #info {
   background: rgba(255, 255, 255, 0.95);
   padding: 15px 20px;
