@@ -1,3 +1,8 @@
+:root {
+  --mono: "Courier New", monospace;
+  --sans: "DM Sans", sans-serif;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -5,7 +10,7 @@
 }
 
 body {
-  font-family: "Courier New", monospace;
+  font-family: var(--sans);
   background: #ffffff;
   color: #000000;
   overflow: hidden;
@@ -20,7 +25,7 @@ body {
 }
 
 #left-column {
-  width: 320px;
+  width: 280px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -52,13 +57,15 @@ body {
 }
 
 #controls h2 {
-  margin: 0 0 20px 0;
-  font-size: 15px;
+  margin: 0 0 14px 0;
+  font-size: 13px;
   text-transform: uppercase;
   font-weight: 400;
+  font-family: var(--mono);
   border-bottom: 1px solid #ddd;
   padding-bottom: 10px;
   color: #000;
+  letter-spacing: 0.5px;
 }
 
 .control-group {
@@ -70,9 +77,9 @@ body {
   margin-bottom: 8px;
   font-size: 13px;
   font-weight: 400;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-family: var(--sans);
+  color: #333;
+  letter-spacing: 0;
 }
 
 .control-group input[type="range"] {
@@ -109,30 +116,32 @@ body {
 
 .toggle-group {
   display: flex;
-  gap: 10px;
+  gap: 6px;
 }
 
 .toggle-btn {
   flex: 1;
-  padding: 10px;
-  background: #ddd;
-  border: none;
-  color: #333;
+  padding: 8px;
+  background: none;
+  border: 1px solid #ddd;
+  color: #666;
   cursor: pointer;
   font-size: 13px;
   font-weight: 400;
-  font-family: "Courier New", monospace;
+  font-family: var(--sans);
   transition: all 0.2s;
   text-align: center;
 }
 
 .toggle-btn:hover {
-  background: #ccc;
+  color: #333;
+  border-color: #bbb;
 }
 
 .toggle-btn.active {
-  background: #888;
-  color: #fff;
+  background: #f0f0f0;
+  border-color: #999;
+  color: #000;
 }
 
 .action-btn {
@@ -145,7 +154,7 @@ body {
   cursor: pointer;
   font-size: 13px;
   font-weight: 400;
-  font-family: "Courier New", monospace;
+  font-family: var(--sans);
   text-align: center;
   letter-spacing: 0.5px;
   transition: background 0.2s;
@@ -245,7 +254,7 @@ body {
 }
 
 #modal-overlay.fullwidth #modal-content {
-  margin-left: 320px;
+  margin-left: 280px;
   margin-right: 180px;
 }
 
@@ -263,7 +272,7 @@ body {
   justify-content: center;
   width: 100%;
   height: 100%;
-  margin-left: 320px;
+  margin-left: 280px;
 }
 
 #modal-image {
@@ -330,15 +339,15 @@ body {
 .band-tick {
   position: absolute;
   right: 32px;
+  font-family: var(--mono);
   font-size: 12px;
   color: #666;
   line-height: 1;
   user-select: none;
-  transition: font-size 0.2s, color 0.2s;
+  transition: color 0.2s;
 }
 
 .band-tick.selected {
-  font-size: 15px;
   color: #000;
 }
 
@@ -365,6 +374,7 @@ body {
 .rgb-label {
   position: absolute;
   left: 80px;
+  font-family: var(--mono);
   font-size: 14px;
   line-height: 1;
   color: #000;
@@ -376,6 +386,7 @@ body {
   top: 5px;
   left: 0;
   right: 0;
+  font-family: var(--mono);
   font-size: 13px;
   font-weight: normal;
   color: #666;

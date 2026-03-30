@@ -1,9 +1,15 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Embedding Earth</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="style.css" />
     <link
       rel="stylesheet"
@@ -12,6 +18,17 @@
   </head>
   <body>
     <div id="map"></div>
+
+    <!-- Band selector (re-enable when triplet tiles are ready)
+    <div id="band-selector">
+      <div id="band-selector-label">False Color Bands</div>
+      <div id="band-scale"></div>
+      <div id="band-handle">
+        <div id="band-value">0-2</div>
+      </div>
+    </div>
+    -->
+
     <script src="https://unpkg.com/maplibre-gl@5.14.0/dist/maplibre-gl.js"></script>
     <script src="script.js"></script>
   </body>

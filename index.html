@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Embedding Earth</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="site.css" />
+  </head>
+  <body>
+    <nav id="tab-bar">
+      <div id="tab-buttons">
+        <button class="tab active" data-tab="globe">Globe</button>
+        <button class="tab" data-tab="cloud">Topology</button>
+        <button class="tab" data-tab="grid">Grid</button>
+      </div>
+      <button id="info-btn" aria-label="About this site">ⓘ</button>
+    </nav>
+
+    <div id="info-popup">
+      <p>
+        <strong>Embedding Earth</strong> explores Google DeepMind's AlphaEarth
+        satellite embedding dataset — a 64-dimensional representation of every
+        place on Earth derived from satellite imagery.
+      </p>
+      <p>
+        <em>Globe</em> renders false-color embedding bands as a raster tile
+        layer on a 3D globe. <em>Topology</em> visualizes embedding space as an
+        interactive 3D scatter plot. <em>Grid</em> arranges globally-sampled
+        embeddings into tiled layouts based on dimension reduction algorithms.
+      </p>
+    </div>
+
+    <main id="tab-content">
+      <iframe
+        id="frame-globe"
+        class="tab-frame active"
+        src="web-maps/globe.html"
+        title="False Color Globe"
+      ></iframe>
+      <iframe
+        id="frame-cloud"
+        class="tab-frame"
+        src="dimension-reduction/point_cloud.html"
+        title="Embedding Topology"
+      ></iframe>
+      <iframe
+        id="frame-grid"
+        class="tab-frame"
+        src="distance_experiment_web/index.html"
+        title="Embedding Distance Grid"
+      ></iframe>
+    </main>
+
+    <script src="site.js"></script>
+  </body>
+</html>

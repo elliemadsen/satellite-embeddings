@@ -86,7 +86,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xffffff);
 
 const camera = new THREE.PerspectiveCamera(
-  55,
+  60,
   window.innerWidth / window.innerHeight,
   0.1,
   2000
@@ -343,10 +343,9 @@ function checkHover() {
     const regionName =
       (SUBREGION_LEGEND[props.subregion_code] || ["", "Unknown"])[1];
 
-    document.getElementById("tooltip-lat").textContent = `Lat: ${props.lat.toFixed(4)}°`;
-    document.getElementById("tooltip-lon").textContent = `Lon: ${props.lon.toFixed(4)}°`;
-    document.getElementById("tooltip-classification").textContent = `Classification: ${classificationName}`;
-    document.getElementById("tooltip-region").textContent = `Region: ${regionName}`;
+    document.getElementById("tooltip-location").textContent = `${props.lat.toFixed(4)}°, ${props.lon.toFixed(4)}°`;
+    document.getElementById("tooltip-classification").textContent = classificationName;
+    document.getElementById("tooltip-region").textContent = regionName;
 
     tooltip.classList.add("visible");
     renderer.domElement.style.cursor = "pointer";

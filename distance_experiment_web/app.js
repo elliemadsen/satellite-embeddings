@@ -999,9 +999,6 @@ window.addEventListener('resize', () => {
     } else {
         render();
     }
-    
-    // Reinitialize band selector on resize to adjust to new height
-    initBandSelector();
 });
 
 // Band selector functions
@@ -1010,18 +1007,16 @@ function initBandSelector() {
     const scale = document.getElementById('band-scale');
     const handle = document.getElementById('band-handle');
     
-    console.log('[Band Selector] Init - handle element:', handle);
-    
-    // Helper function to get current dimensions
     const getDimensions = () => {
         const padding = 20;
-        const viewportHeight = window.innerHeight;
+        // Use the selector's actual rendered height when available (avoids
+        // the window.innerHeight = 0 problem when loaded in a hidden iframe)
+        const viewportHeight = selector.clientHeight || window.innerHeight;
         const availableHeight = viewportHeight - (padding * 2);
         const tickSpacing = availableHeight / 63;
         return { padding, availableHeight, tickSpacing };
     };
     
-    // Calculate initial dimensions
     let dims = getDimensions();
     
     // Clear existing elements
@@ -1034,7 +1029,7 @@ function initBandSelector() {
         tick.className = 'band-tick';
         tick.textContent = String(i).padStart(2, '0');
         tick.style.top = `${dims.padding + (i * dims.tickSpacing)}px`;
-        tick.style.pointerEvents = 'none'; // Prevent ticks from blocking handle
+        tick.style.pointerEvents = 'none';
         scale.appendChild(tick);
         tickElements.push(tick);
     }
@@ -1042,11 +1037,11 @@ function initBandSelector() {
     // Create RGB labels
     const rgbLabels = ['R', 'G', 'B'];
     const rgbElements = [];
-    rgbLabels.forEach((label, idx) => {
+    rgbLabels.forEach((label) => {
         const elem = document.createElement('div');
         elem.className = `rgb-label ${label.toLowerCase()}`;
         elem.textContent = label;
-        elem.style.pointerEvents = 'none'; // Prevent labels from blocking handle
+        elem.style.pointerEvents = 'none';
         scale.appendChild(elem);
         rgbElements.push(elem);
     });
@@ -1055,12 +1050,20 @@ function initBandSelector() {
     const minBand = 0;
     const maxBand = 61;
     
+    // Reposition all ticks and handle to match current element height
+    function layoutTicks() {
+        dims = getDimensions();
+        for (let i = 0; i <= 63; i++) {
+            tickElements[i].style.top = `${dims.padding + (i * dims.tickSpacing)}px`;
+        }
+        updateHandlePosition(currentBandStart);
+    }
+    
     function updateHandlePosition(band) {
         dims = getDimensions();
         const handleHeight = dims.tickSpacing * 3;
         const position = dims.padding + (band * dims.tickSpacing);
         
-        // Use the fresh handle from DOM
         const currentHandle = document.getElementById('band-handle');
         currentHandle.style.top = `${position}px`;
         currentHandle.style.height = `${handleHeight}px`;
@@ -1070,11 +1073,7 @@ function initBandSelector() {
         });
         
         tickElements.forEach((tick, idx) => {
-            if (idx >= band && idx <= band + 2) {
-                tick.classList.add('selected');
-            } else {
-                tick.classList.remove('selected');
-            }
+            tick.classList.toggle('selected', idx >= band && idx <= band + 2);
         });
         
         if (modalOpen && currentModalSample) {
@@ -1101,39 +1100,36 @@ function initBandSelector() {
     const newHandle = handle.cloneNode(true);
     handle.parentNode.replaceChild(newHandle, handle);
     
-    console.log('[Band Selector] Handle after clone:', newHandle, 'ID:', newHandle.id);
-    
-    // Attach listeners to the fresh handle
     newHandle.addEventListener('mousedown', (e) => {
-        console.log('[Band Selector] Handle mousedown - starting drag');
         isDragging = true;
         e.preventDefault();
         e.stopPropagation();
     });
     
     document.addEventListener('mousemove', (e) => {
-        if (isDragging) {
-            console.log('[Band Selector] Dragging at clientY:', e.clientY);
-            handleMove(e.clientY);
-        }
+        if (isDragging) handleMove(e.clientY);
     });
     
     document.addEventListener('mouseup', () => {
-        if (isDragging) {
-            console.log('[Band Selector] Drag ended');
-            isDragging = false;
-        }
+        if (isDragging) isDragging = false;
     });
     
     selector.addEventListener('click', (e) => {
         if (e.target !== newHandle && !newHandle.contains(e.target)) {
-            console.log('[Band Selector] Selector clicked');
             handleMove(e.clientY);
         }
     });
-        dims = getDimensions();
+
+    // Re-layout whenever the selector's size changes — this fires as soon as
+    // the grid tab is shown for the first time (iframe was display:none at load)
+    const ro = new ResizeObserver(() => {
+        if (selector.clientHeight > 0) layoutTicks();
+    });
+    ro.observe(selector);
     
-    // Initialize handle position
+    // Also re-layout on window resize
+    window.addEventListener('resize', () => layoutTicks());
+
     updateHandlePosition(currentBandStart);
 }
 
