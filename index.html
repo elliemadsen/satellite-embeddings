@@ -19,8 +19,8 @@
   <body>
     <nav id="tab-bar">
       <div id="tab-buttons">
-        <button class="tab active" data-tab="globe">Globe</button>
-        <button class="tab" data-tab="cloud">Topology</button>
+        <button class="tab" data-tab="globe">Globe</button>
+        <button class="tab active" data-tab="cloud">Topology</button>
         <button class="tab" data-tab="grid">Grid</button>
       </div>
       <button id="info-btn" aria-label="About this site">ⓘ</button>
@@ -29,27 +29,34 @@
     <div id="info-popup">
       <p>
         <strong>Embedding Earth</strong> explores Google DeepMind's AlphaEarth
-        satellite embedding dataset — a 64-dimensional representation of every
-        place on Earth derived from satellite imagery.
+        Foundations satellite embedding dataset — a 64-dimensional vector
+        representation of every 10m patch of land on Earth, derived from
+        satellite imagery and other environmental input data.
       </p>
       <p>
         <em>Globe</em> renders false-color embedding bands as a raster tile
-        layer on a 3D globe. <em>Topology</em> visualizes embedding space as an
-        interactive 3D scatter plot. <em>Grid</em> arranges globally-sampled
-        embeddings into tiled layouts based on dimension reduction algorithms.
+        layer on a 3D globe. <em>Topology</em> applies dimension reduction
+        algorithms to visualize globally-sampled embedding space as an
+        interactive 3D scatter plot. <em>Grid</em> arranges
+        dimensionally-reduced embedding space into tiled layouts with false
+        color parametrization.
+      </p>
+      <p>
+        Land Classification data is sourced from Copernicus Global Dynamic Land
+        Cover. Geographical subregions are from the United Nations geoscheme.
       </p>
     </div>
 
     <main id="tab-content">
       <iframe
         id="frame-globe"
-        class="tab-frame active"
+        class="tab-frame"
         src="web-maps/globe.html"
         title="False Color Globe"
       ></iframe>
       <iframe
         id="frame-cloud"
-        class="tab-frame"
+        class="tab-frame active"
         src="dimension-reduction/point_cloud.html"
         title="Embedding Topology"
       ></iframe>

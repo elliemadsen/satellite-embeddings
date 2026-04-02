@@ -12,11 +12,15 @@ const mouse = new THREE.Vector2();
 let mouseInitialized = false;
 raycaster.params.Points.threshold =0.5;
 
-fetch("data/5000_sampled_classified_embeddings.geojson")
-  .then((r) => r.json())
-  .then((d) => {
-    geojson = d;
+Promise.all([
+  fetch("data/20000_sampled_classified_embeddings.geojson").then((r) => r.json()),
+  // fetch("data/10000_sampled_classified_embeddings.geojson").then((r) => r.json()),
+]).then(([d1]) => {
+  geojson = d1;
+    // geojson = { ...d1, features: [...d1.features, ...d2.features] };
     initPointCloud();
+
+    updateDimReductionVisibility();
 
     document
       .querySelectorAll(
@@ -24,6 +28,7 @@ fetch("data/5000_sampled_classified_embeddings.geojson")
       )
       .forEach((el) =>
         el.addEventListener("change", () => {
+          updateDimReductionVisibility();
           updatePointCloud();
           updateLegend();
         })
@@ -46,6 +51,22 @@ const LAND_CLASSIFICATION_LEGEND = {
   of: ["#99C24D", "Open Forest"],
 };
 
+//   0: ["#9e9e9e", "Unknown / No Data"],
+//   20: ["#c4a35a", "Shrubs"],
+//   30: ["#a8d57a", "Herbaceous vegetation"],
+//   40: ["#f5cb45", "Cultivated / Agriculture"],
+//   50: ["#d9534f", "Urban / Built-up"],
+//   60: ["#e8d4a0", "Bare / Sparse vegetation"],
+//   70: ["#daeef7", "Snow and Ice"],
+//   80: ["#4a9eda", "Permanent water bodies"],
+//   90: ["#5bbfb5", "Herbaceous wetland"],
+//   100: ["#b5ce52", "Moss & Lichen"],
+//   200: ["#1a5f8a", "Oceans / Seas"],
+//   cf: ["#2d7a2d", "Closed Forest"],
+//   of: ["#6ab54d", "Open Forest"],
+// };
+
+
 const SUBREGION_LEGEND = {
   0: ["#949C9F", "Unknown / No Data"],
   15.0: ["#F18F01", "Northern Africa"],
@@ -67,6 +88,26 @@ const SUBREGION_LEGEND = {
   61.0: ["#F9F26F", "Polynesia"],
 };
 
+//   0: ["#9e9e9e", "Unknown / No Data"],
+//   15.0: ["#e07c35", "Northern Africa"],
+//   202.0: ["#f2b134", "Sub-Saharan Africa"],
+//   419.0: ["#56ab2f", "Latin America and the Caribbean"],
+//   21.0: ["#2980b9", "Northern America"],
+//   143.0: ["#8e44ad", "Central Asia"],
+//   30.0: ["#c0392b", "Eastern Asia"],
+//   35.0: ["#16a085", "South-eastern Asia"],
+//   34.0: ["#d35400", "Southern Asia"],
+//   145.0: ["#c0417b", "Western Asia"],
+//   151.0: ["#7f8c8d", "Eastern Europe"],
+//   154.0: ["#5dade2", "Northern Europe"],
+//   39.0: ["#a569bd", "Southern Europe"],
+//   155.0: ["#2471a3", "Western Europe"],
+//   53.0: ["#82b944", "Australia and New Zealand"],
+//   54.0: ["#48c9b0", "Melanesia"],
+//   57.0: ["#85c1e9", "Micronesia"],
+//   61.0: ["#f0b27a", "Polynesia"],
+// };
+
 let radius = 40;
 
 function latLonToSphere(lat, lon, r = radius) {
@@ -87,7 +128,7 @@ scene.background = new THREE.Color(0xffffff);
 
 const camera = new THREE.PerspectiveCamera(
   60,
-  window.innerWidth / window.innerHeight,
+  (window.innerWidth - 260) / window.innerHeight,
   0.1,
   2000
 );
@@ -150,7 +191,7 @@ function initPointCloud() {
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
   const material = new THREE.PointsMaterial({
-    size: 1.2,
+    size: 0.5,
     vertexColors: true,
     sizeAttenuation: true,
   });
@@ -271,6 +312,12 @@ function updatePointCloud(duration = 1200) {
   }
 
   requestAnimationFrame(frame);
+}
+
+function updateDimReductionVisibility() {
+  const projection = document.querySelector('input[name="projection"]:checked').value;
+  const section = document.getElementById("dim-reduction-section");
+  section.style.display = projection === "embedding" ? "" : "none";
 }
 
 function updateLegend() {

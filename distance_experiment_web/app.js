@@ -20,7 +20,7 @@ let cameraControlMode = 'orbit'; // 'orbit' or 'fly'
 let keyboardState = {}; // Track keyboard input
 let keyboardHandler = null; // Store keyboard event handler
 let cameraSpeed = 0.3; // Camera movement speed
-let gapSize = 3; // Gap in px between images in 2D grid
+let gapSize = 1; // Gap in px between images in 2D grid
 // Land classification legend
 const LAND_CLASSIFICATION_LEGEND = {
         0: ["#949C9F", "Unknown / No Data"],
@@ -334,23 +334,23 @@ document.querySelectorAll('[data-dimension]').forEach(btn => {
         // Show/hide camera control toggle and speed slider
         const cameraControlGroup = document.getElementById('camera-control-group');
         const cameraSpeedGroup = document.getElementById('camera-speed-group');
-        const gapControlGroup = document.getElementById('gap-control-group');
-        const saveBtn = document.getElementById('save-btn');
+        // const gapControlGroup = document.getElementById('gap-control-group');
+        // const saveBtn = document.getElementById('save-btn');
         if (currentDimension === 3) {
             cameraControlGroup.style.display = 'block';
             cameraSpeedGroup.style.display = 'block';
-            gapControlGroup.style.display = 'none';
-            saveBtn.style.display = 'none';
+            // gapControlGroup.style.display = 'none';
+            // saveBtn.style.display = 'none';
         } else if (currentDimension === 2) {
             cameraControlGroup.style.display = 'none';
             cameraSpeedGroup.style.display = 'none';
-            gapControlGroup.style.display = 'block';
-            saveBtn.style.display = 'block';
+            // gapControlGroup.style.display = 'block';
+            // saveBtn.style.display = 'block';
         } else {
             cameraControlGroup.style.display = 'none';
             cameraSpeedGroup.style.display = 'none';
-            gapControlGroup.style.display = 'none';
-            saveBtn.style.display = 'none';
+            // gapControlGroup.style.display = 'none';
+            // saveBtn.style.display = 'none';
         }
         
         render();
@@ -407,17 +407,17 @@ document.getElementById('camera-speed-slider').addEventListener('input', (e) => 
 });
 
 // Gap size slider
-document.getElementById('gap-slider').addEventListener('input', (e) => {
-    gapSize = parseInt(e.target.value);
-    document.getElementById('gap-value').textContent = gapSize;
-    if (currentDimension === 2) render();
-});
+// document.getElementById('gap-slider').addEventListener('input', (e) => {
+//     gapSize = parseInt(e.target.value);
+//     document.getElementById('gap-value').textContent = gapSize;
+//     if (currentDimension === 2) render();
+// });
 
 // Save button — downloads the current 2D grid as a high-quality PNG
-document.getElementById('save-btn').addEventListener('click', () => {
-    if (currentDimension !== 2) return;
-    saveImage2D();
-});
+// document.getElementById('save-btn').addEventListener('click', () => {
+//     if (currentDimension !== 2) return;
+//     saveImage2D();
+// });
 
 function saveImage2D() {
     const container = document.getElementById('grid-2d');
