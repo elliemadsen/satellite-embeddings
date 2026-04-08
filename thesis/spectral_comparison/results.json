@@ -1,0 +1,426 @@
+{
+  "case1": [
+    {
+      "pair_idx": 0,
+      "tag_a": "case1_pair1_a_northern_america",
+      "tag_b": "case1_pair1_b_eastern_europe",
+      "img_emb_sim": 0.9558990001678467,
+      "img_spec_sim": 0.996321
+    },
+    {
+      "pair_idx": 1,
+      "tag_a": "case1_pair2_a_northern_america",
+      "tag_b": "case1_pair2_b_eastern_europe",
+      "img_emb_sim": 0.9535924196243286,
+      "img_spec_sim": 0.99549
+    },
+    {
+      "pair_idx": 2,
+      "tag_a": "case1_pair3_a_northern_america",
+      "tag_b": "case1_pair3_b_eastern_europe",
+      "img_emb_sim": 0.951657772064209,
+      "img_spec_sim": 0.951981
+    },
+    {
+      "pair_idx": 3,
+      "tag_a": "case1_pair4_a_eastern_europe",
+      "tag_b": "case1_pair4_b_northern_america",
+      "img_emb_sim": 0.9547923803329468,
+      "img_spec_sim": 0.988228
+    },
+    {
+      "pair_idx": 4,
+      "tag_a": "case1_pair5_a_eastern_europe",
+      "tag_b": "case1_pair5_b_northern_america",
+      "img_emb_sim": 0.9490357637405396,
+      "img_spec_sim": 0.998933
+    },
+    {
+      "pair_idx": 5,
+      "tag_a": "case1_pair6_a_northern_america",
+      "tag_b": "case1_pair6_b_eastern_europe",
+      "img_emb_sim": 0.9486827254295349,
+      "img_spec_sim": 0.972475
+    },
+    {
+      "pair_idx": 6,
+      "tag_a": "case1_pair7_a_northern_america",
+      "tag_b": "case1_pair7_b_eastern_europe",
+      "img_emb_sim": 0.9408968687057495,
+      "img_spec_sim": 0.992842
+    },
+    {
+      "pair_idx": 7,
+      "tag_a": "case1_pair8_a_eastern_europe",
+      "tag_b": "case1_pair8_b_northern_america",
+      "img_emb_sim": 0.9399661421775818,
+      "img_spec_sim": 0.966127
+    },
+    {
+      "pair_idx": 8,
+      "tag_a": "case1_pair9_a_northern_america",
+      "tag_b": "case1_pair9_b_eastern_europe",
+      "img_emb_sim": 0.9390803575515747,
+      "img_spec_sim": 0.994435
+    },
+    {
+      "pair_idx": 9,
+      "tag_a": "case1_pair10_a_northern_america",
+      "tag_b": "case1_pair10_b_eastern_europe",
+      "img_emb_sim": 0.9329963326454163,
+      "img_spec_sim": 0.99909
+    },
+    {
+      "pair_idx": 10,
+      "tag_a": "case1_pair11_a_eastern_europe",
+      "tag_b": "case1_pair11_b_northern_america",
+      "img_emb_sim": 0.9327305555343628,
+      "img_spec_sim": 0.975879
+    },
+    {
+      "pair_idx": 11,
+      "tag_a": "case1_pair12_a_northern_america",
+      "tag_b": "case1_pair12_b_eastern_europe",
+      "img_emb_sim": 0.9334402084350586,
+      "img_spec_sim": 0.945793
+    },
+    {
+      "pair_idx": 12,
+      "tag_a": "case1_pair13_a_northern_europe",
+      "tag_b": "case1_pair13_b_northern_america",
+      "img_emb_sim": 0.927308976650238,
+      "img_spec_sim": 0.98214
+    },
+    {
+      "pair_idx": 13,
+      "tag_a": "case1_pair14_a_northern_america",
+      "tag_b": "case1_pair14_b_eastern_europe",
+      "img_emb_sim": 0.9264795780181885,
+      "img_spec_sim": 0.995779
+    },
+    {
+      "pair_idx": 14,
+      "tag_a": "case1_pair15_a_northern_america",
+      "tag_b": "case1_pair15_b_eastern_europe",
+      "img_emb_sim": 0.9213652014732361,
+      "img_spec_sim": 0.98772
+    },
+    {
+      "pair_idx": 15,
+      "tag_a": "case1_pair16_a_eastern_europe",
+      "tag_b": "case1_pair16_b_northern_america",
+      "img_emb_sim": 0.9262331128120422,
+      "img_spec_sim": 0.991389
+    },
+    {
+      "pair_idx": 16,
+      "tag_a": "case1_pair17_a_eastern_europe",
+      "tag_b": "case1_pair17_b_northern_america",
+      "img_emb_sim": 0.9207282066345215,
+      "img_spec_sim": 0.978965
+    },
+    {
+      "pair_idx": 17,
+      "tag_a": "case1_pair18_a_northern_america",
+      "tag_b": "case1_pair18_b_eastern_europe",
+      "img_emb_sim": 0.9236289262771606,
+      "img_spec_sim": 0.993326
+    },
+    {
+      "pair_idx": 18,
+      "tag_a": "case1_pair19_a_northern_america",
+      "tag_b": "case1_pair19_b_eastern_europe",
+      "img_emb_sim": 0.9165555834770203,
+      "img_spec_sim": 0.988385
+    },
+    {
+      "pair_idx": 19,
+      "tag_a": "case1_pair20_a_eastern_europe",
+      "tag_b": "case1_pair20_b_northern_america",
+      "img_emb_sim": 0.9214105606079102,
+      "img_spec_sim": 0.971906
+    },
+    {
+      "pair_idx": 20,
+      "tag_a": "case1_pair21_a_eastern_europe",
+      "tag_b": "case1_pair21_b_northern_america",
+      "img_emb_sim": 0.9163055419921875,
+      "img_spec_sim": 0.989616
+    },
+    {
+      "pair_idx": 21,
+      "tag_a": "case1_pair22_a_northern_america",
+      "tag_b": "case1_pair22_b_eastern_europe",
+      "img_emb_sim": 0.9138672351837158,
+      "img_spec_sim": 0.978245
+    },
+    {
+      "pair_idx": 22,
+      "tag_a": "case1_pair23_a_northern_america",
+      "tag_b": "case1_pair23_b_eastern_europe",
+      "img_emb_sim": 0.9147154688835144,
+      "img_spec_sim": 0.97063
+    },
+    {
+      "pair_idx": 23,
+      "tag_a": "case1_pair24_a_northern_america",
+      "tag_b": "case1_pair24_b_eastern_europe",
+      "img_emb_sim": 0.9204166531562805,
+      "img_spec_sim": 0.948766
+    },
+    {
+      "pair_idx": 24,
+      "tag_a": "case1_pair25_a_eastern_europe",
+      "tag_b": "case1_pair25_b_northern_america",
+      "img_emb_sim": 0.9107688069343567,
+      "img_spec_sim": 0.992911
+    },
+    {
+      "pair_idx": 25,
+      "tag_a": "case1_pair26_a_eastern_europe",
+      "tag_b": "case1_pair26_b_northern_america",
+      "img_emb_sim": 0.9090183973312378,
+      "img_spec_sim": 0.997802
+    },
+    {
+      "pair_idx": 26,
+      "tag_a": "case1_pair27_a_northern_america",
+      "tag_b": "case1_pair27_b_eastern_europe",
+      "img_emb_sim": 0.9063336253166199,
+      "img_spec_sim": 0.99152
+    },
+    {
+      "pair_idx": 27,
+      "tag_a": "case1_pair28_a_eastern_asia",
+      "tag_b": "case1_pair28_b_eastern_europe",
+      "img_emb_sim": 0.9109483361244202,
+      "img_spec_sim": 0.99008
+    },
+    {
+      "pair_idx": 28,
+      "tag_a": "case1_pair29_a_northern_america",
+      "tag_b": "case1_pair29_b_eastern_europe",
+      "img_emb_sim": 0.9376700520515442,
+      "img_spec_sim": 0.934503
+    },
+    {
+      "pair_idx": 29,
+      "tag_a": "case1_pair30_a_northern_america",
+      "tag_b": "case1_pair30_b_northern_europe",
+      "img_emb_sim": 0.9026713967323303,
+      "img_spec_sim": 0.986346
+    }
+  ],
+  "case2": [
+    {
+      "pair_idx": 0,
+      "tag_a": "case2_pair1_a_latin_america_and_the_caribbean",
+      "tag_b": "case2_pair1_b_southern_asia",
+      "img_emb_sim": -0.25238093733787537,
+      "img_spec_sim": 0.995814
+    },
+    {
+      "pair_idx": 1,
+      "tag_a": "case2_pair2_a_southern_asia",
+      "tag_b": "case2_pair2_b_latin_america_and_the_caribbean",
+      "img_emb_sim": -0.23779194056987762,
+      "img_spec_sim": 0.999692
+    },
+    {
+      "pair_idx": 2,
+      "tag_a": "case2_pair3_a_eastern_asia",
+      "tag_b": "case2_pair3_b_latin_america_and_the_caribbean",
+      "img_emb_sim": -0.258169949054718,
+      "img_spec_sim": 0.993323
+    },
+    {
+      "pair_idx": 3,
+      "tag_a": "case2_pair4_a_melanesia",
+      "tag_b": "case2_pair4_b_northern_europe",
+      "img_emb_sim": -0.20035718381404877,
+      "img_spec_sim": 0.999026
+    },
+    {
+      "pair_idx": 4,
+      "tag_a": "case2_pair5_a_latin_america_and_the_caribbean",
+      "tag_b": "case2_pair5_b_northern_europe",
+      "img_emb_sim": -0.21945592761039734,
+      "img_spec_sim": 0.992714
+    },
+    {
+      "pair_idx": 5,
+      "tag_a": "case2_pair6_a_sub-saharan_africa",
+      "tag_b": "case2_pair6_b_latin_america_and_the_caribbean",
+      "img_emb_sim": -0.1914421021938324,
+      "img_spec_sim": 0.997296
+    },
+    {
+      "pair_idx": 6,
+      "tag_a": "case2_pair7_a_eastern_europe",
+      "tag_b": "case2_pair7_b_northern_america",
+      "img_emb_sim": -0.20838983356952667,
+      "img_spec_sim": 0.994265
+    },
+    {
+      "pair_idx": 7,
+      "tag_a": "case2_pair8_a_northern_america",
+      "tag_b": "case2_pair8_b_sub-saharan_africa",
+      "img_emb_sim": -0.21241505444049835,
+      "img_spec_sim": 0.999552
+    },
+    {
+      "pair_idx": 8,
+      "tag_a": "case2_pair9_a_latin_america_and_the_caribbean",
+      "tag_b": "case2_pair9_b_eastern_asia",
+      "img_emb_sim": -0.17015373706817627,
+      "img_spec_sim": 0.995892
+    },
+    {
+      "pair_idx": 9,
+      "tag_a": "case2_pair10_a_southern_asia",
+      "tag_b": "case2_pair10_b_sub-saharan_africa",
+      "img_emb_sim": -0.1894734501838684,
+      "img_spec_sim": 0.997234
+    },
+    {
+      "pair_idx": 10,
+      "tag_a": "case2_pair11_a_latin_america_and_the_caribbean",
+      "tag_b": "case2_pair11_b_eastern_asia",
+      "img_emb_sim": -0.24096275866031647,
+      "img_spec_sim": 0.998154
+    },
+    {
+      "pair_idx": 11,
+      "tag_a": "case2_pair12_a_latin_america_and_the_caribbean",
+      "tag_b": "case2_pair12_b_sub-saharan_africa",
+      "img_emb_sim": -0.1536640226840973,
+      "img_spec_sim": 0.998957
+    },
+    {
+      "pair_idx": 12,
+      "tag_a": "case2_pair13_a_sub-saharan_africa",
+      "tag_b": "case2_pair13_b_eastern_asia",
+      "img_emb_sim": -0.20903009176254272,
+      "img_spec_sim": 0.999631
+    },
+    {
+      "pair_idx": 13,
+      "tag_a": "case2_pair14_a_sub-saharan_africa",
+      "tag_b": "case2_pair14_b_southern_europe",
+      "img_emb_sim": -0.15520471334457397,
+      "img_spec_sim": 0.999659
+    },
+    {
+      "pair_idx": 14,
+      "tag_a": "case2_pair15_a_eastern_europe",
+      "tag_b": "case2_pair15_b_latin_america_and_the_caribbean",
+      "img_emb_sim": -0.14532969892024994,
+      "img_spec_sim": 0.999989
+    },
+    {
+      "pair_idx": 15,
+      "tag_a": "case2_pair16_a_latin_america_and_the_caribbean",
+      "tag_b": "case2_pair16_b_south-eastern_asia",
+      "img_emb_sim": -0.14400283992290497,
+      "img_spec_sim": 0.996938
+    },
+    {
+      "pair_idx": 16,
+      "tag_a": "case2_pair17_a_latin_america_and_the_caribbean",
+      "tag_b": "case2_pair17_b_sub-saharan_africa",
+      "img_emb_sim": -0.2142297476530075,
+      "img_spec_sim": 0.99868
+    },
+    {
+      "pair_idx": 17,
+      "tag_a": "case2_pair18_a_northern_america",
+      "tag_b": "case2_pair18_b_south-eastern_asia",
+      "img_emb_sim": -0.15029458701610565,
+      "img_spec_sim": 0.993828
+    },
+    {
+      "pair_idx": 18,
+      "tag_a": "case2_pair19_a_south-eastern_asia",
+      "tag_b": "case2_pair19_b_eastern_europe",
+      "img_emb_sim": -0.13854269683361053,
+      "img_spec_sim": 0.999868
+    },
+    {
+      "pair_idx": 19,
+      "tag_a": "case2_pair20_a_latin_america_and_the_caribbean",
+      "tag_b": "case2_pair20_b_sub-saharan_africa",
+      "img_emb_sim": -0.16864554584026337,
+      "img_spec_sim": 0.998547
+    },
+    {
+      "pair_idx": 20,
+      "tag_a": "case2_pair21_a_south-eastern_asia",
+      "tag_b": "case2_pair21_b_northern_america",
+      "img_emb_sim": -0.17396731674671173,
+      "img_spec_sim": 0.999461
+    },
+    {
+      "pair_idx": 21,
+      "tag_a": "case2_pair22_a_western_asia",
+      "tag_b": "case2_pair22_b_australia_and_new_zealand",
+      "img_emb_sim": -0.18895934522151947,
+      "img_spec_sim": 0.991839
+    },
+    {
+      "pair_idx": 22,
+      "tag_a": "case2_pair23_a_southern_asia",
+      "tag_b": "case2_pair23_b_latin_america_and_the_caribbean",
+      "img_emb_sim": -0.20495514571666718,
+      "img_spec_sim": 0.994247
+    },
+    {
+      "pair_idx": 23,
+      "tag_a": "case2_pair24_a_sub-saharan_africa",
+      "tag_b": "case2_pair24_b_latin_america_and_the_caribbean",
+      "img_emb_sim": -0.18210536241531372,
+      "img_spec_sim": 0.995653
+    },
+    {
+      "pair_idx": 24,
+      "tag_a": "case2_pair25_a_latin_america_and_the_caribbean",
+      "tag_b": "case2_pair25_b_northern_america",
+      "img_emb_sim": -0.14623646438121796,
+      "img_spec_sim": 0.999832
+    },
+    {
+      "pair_idx": 25,
+      "tag_a": "case2_pair26_a_south-eastern_asia",
+      "tag_b": "case2_pair26_b_northern_america",
+      "img_emb_sim": -0.13523493707180023,
+      "img_spec_sim": 0.995912
+    },
+    {
+      "pair_idx": 26,
+      "tag_a": "case2_pair27_a_sub-saharan_africa",
+      "tag_b": "case2_pair27_b_southern_europe",
+      "img_emb_sim": -0.2061641961336136,
+      "img_spec_sim": 0.997201
+    },
+    {
+      "pair_idx": 27,
+      "tag_a": "case2_pair28_a_latin_america_and_the_caribbean",
+      "tag_b": "case2_pair28_b_southern_europe",
+      "img_emb_sim": -0.1503158062696457,
+      "img_spec_sim": 0.999186
+    },
+    {
+      "pair_idx": 28,
+      "tag_a": "case2_pair29_a_latin_america_and_the_caribbean",
+      "tag_b": "case2_pair29_b_northern_america",
+      "img_emb_sim": -0.16736753284931183,
+      "img_spec_sim": 0.999837
+    },
+    {
+      "pair_idx": 29,
+      "tag_a": "case2_pair30_a_eastern_asia",
+      "tag_b": "case2_pair30_b_eastern_europe",
+      "img_emb_sim": -0.18770204484462738,
+      "img_spec_sim": 0.999074
+    }
+  ]
+}
