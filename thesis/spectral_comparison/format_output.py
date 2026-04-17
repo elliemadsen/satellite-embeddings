@@ -29,8 +29,13 @@ matplotlib.rcParams["font.family"] = "Roboto"
 # ── Paths ─────────────────────────────────────────────────────────────────────
 CANDIDATES_FILE = Path(__file__).parent / "candidates.json"
 RESULTS_FILE    = Path(__file__).parent / "results.json"
-OUTPUT_DIR      = Path(__file__).parent / "output"
+OUTPUT_DIR      = Path(__file__).parent / "output_A61_A62_A63"
 PAIRS_DIR       = OUTPUT_DIR / "pairs"
+ATLAS_DIR       = OUTPUT_DIR / "atlas"
+
+# Derive AlphaEarth band label from output folder name: "output_A61_A62_A63" → "A61, A62, A63"
+_ae_raw = OUTPUT_DIR.name.replace("output_", "", 1)
+AE_BANDS_DISPLAY = ", ".join(_ae_raw.split("_")) if _ae_raw else ""
 
 for _required in (CANDIDATES_FILE, RESULTS_FILE):
     if not _required.exists():
@@ -93,13 +98,15 @@ BG_COLOR    = "#ffffff"
 def _draw_vertical_text(canvas, text, x_center, y_center, font, fill):
     """Draw text rotated 90° CCW (reading bottom→top), centered at (x_center, y_center)."""
     from PIL import ImageDraw as _ID
-    # Render text onto a temporary image, then rotate
-    tmp = Image.new("RGBA", (800, 50), (0, 0, 0, 0))
+    tmp = Image.new("RGBA", (2000, 80), (0, 0, 0, 0))
     td  = _ID.Draw(tmp)
     bbox = td.textbbox((0, 0), text, font=font)
-    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    tmp2 = Image.new("RGBA", (tw + 4, th + 4), (0, 0, 0, 0))
-    _ID.Draw(tmp2).text((2, 2), text, fill=fill, font=font)
+    tw = bbox[2] - bbox[0]
+    th = bbox[3] - bbox[1]
+    PAD = 8
+    tmp2 = Image.new("RGBA", (tw + 2 * PAD, th + 2 * PAD), (0, 0, 0, 0))
+    # Shift by -bbox origin so all ink lands inside tmp2
+    _ID.Draw(tmp2).text((PAD - bbox[0], PAD - bbox[1]), text, fill=fill, font=font)
     rotated = tmp2.rotate(90, expand=True, resample=Image.BICUBIC)
     px = x_center - rotated.width // 2
     py = y_center - rotated.height // 2
@@ -247,6 +254,109 @@ def render_grid(case_name: str, case_title: str, indices: list[int],
     print(f"  ✓ {out}  ({total_w}×{total_h})")
 
 
+# ── Atlas: per-pair 2×2 tiles ─────────────────────────────────────────────────
+
+def render_pair_tiles(case_name: str, grid_pos: int, pair: dict, res: dict):
+    """
+    Render a single pair as a square 2×2 PNG saved to ATLAS_DIR.
+
+    Layout:
+                  Site A         Site B
+    Sentinel-2    [tile]         [tile]    Spectral Similarity: X.XXX (vert right)
+
+    AlphaEarth    [tile]         [tile]    Embedding Similarity: X.XXX (vert right)
+                  [caption]      [caption]  (region / lat,lon / lc / bands)
+
+    EDGE_PAD is the uniform gap from any label's text edge to the adjacent tile edge.
+    """
+    from PIL import ImageDraw, ImageFont
+
+    try:
+        font_col = ImageFont.truetype("Roboto", 16)   # column + row labels
+        font_cap = ImageFont.truetype("Roboto", 14)   # subcaptions
+        font_sim = ImageFont.truetype("Roboto", 14)   # sim labels
+    except OSError:
+        font_col = font_cap = font_sim = ImageFont.load_default()
+
+    TILE      = 460    # tile size in pixels
+    GAP       = 44     # equal gap between tile rows and between tile columns
+    EDGE_PAD  = 14     # uniform gap: label text edge → adjacent tile edge (all 4 sides)
+    LBL_HALF  = 11     # approx half-width of rotated vertical label (≈ font ascent / 2)
+    HDR_H     = 21     # approx rendered height of one header line at 16pt
+    LINE_H    = 20     # caption line height at 14pt
+    N_CAP     = 4      # caption lines: region, lat/lon, lc, bands
+    OUTER_PAD = 40     # minimum outer padding on all sides
+
+    # ── Content dimensions ────────────────────────────────────────────────
+    # Width:  [LBL_HALF + EDGE_PAD] | TILE | GAP | TILE | [EDGE_PAD + LBL_HALF]
+    # Height: [HDR_H + EDGE_PAD]    | TILE | GAP | TILE | [EDGE_PAD + N_CAP * LINE_H]
+    content_w = (LBL_HALF + EDGE_PAD) + TILE + GAP + TILE + (EDGE_PAD + LBL_HALF)
+    content_h = (HDR_H    + EDGE_PAD) + TILE + GAP + TILE + (EDGE_PAD + N_CAP * LINE_H)
+
+    # Square canvas; center content so outer padding is equal on all sides
+    side  = max(content_w, content_h) + 2 * OUTER_PAD
+    x_off = (side - content_w) // 2
+    y_off = (side - content_h) // 2
+
+    canvas = Image.new("RGB", (side, side), BG_COLOR)
+    draw   = ImageDraw.Draw(canvas)
+
+    # ── Derived coordinates ───────────────────────────────────────────────
+    x_a   = x_off + LBL_HALF + EDGE_PAD            # left edge of Site A tiles
+    x_b   = x_a + TILE + GAP                       # left edge of Site B tiles
+    x_rl  = x_off + LBL_HALF // 2                  # row-label center x (left side)
+    x_sim = x_b + TILE + EDGE_PAD + LBL_HALF // 2  # sim-label center x (right side)
+    y_hdr  = y_off                                  # top of column header text
+    y_row1 = y_off + HDR_H + EDGE_PAD              # top of Sentinel-2 tiles
+    y_row2 = y_row1 + TILE + GAP                   # top of AlphaEarth tiles
+    y_cap  = y_row2 + TILE + EDGE_PAD              # top of captions
+
+    # ── Column headers — left-aligned to tile left edge ───────────────────
+    draw.text((x_a, y_hdr), "Site A", fill=CLR_HEADER, font=font_col)
+    draw.text((x_b, y_hdr), "Site B", fill=CLR_HEADER, font=font_col)
+
+    # ── Row labels (vertical, left side) ─────────────────────────────────
+    _draw_vertical_text(canvas, "Sentinel-2", x_rl, y_row1 + TILE // 2, font_col, CLR_HEADER)
+    _draw_vertical_text(canvas, "AlphaEarth",  x_rl, y_row2 + TILE // 2, font_col, CLR_HEADER)
+
+    # ── Sim labels (vertical, right side, one per row) ───────────────────
+    _draw_vertical_text(canvas, f"Spectral Similarity: {pair['point_spec_sim']:.3f}",
+                        x_sim, y_row1 + TILE // 2, font_sim, CLR_SIM)
+    _draw_vertical_text(canvas, f"Embedding Similarity: {pair['point_emb_sim']:.3f}",
+                        x_sim, y_row2 + TILE // 2, font_sim, CLR_SIM)
+
+    # ── Load images (LANCZOS for quality) ────────────────────────────────
+    tag_a, tag_b = res["tag_a"], res["tag_b"]
+
+    def _load(tag, mod):
+        return (Image.open(PAIRS_DIR / f"{tag}_{mod}.png")
+                .convert("RGB").resize((TILE, TILE), Image.LANCZOS))
+
+    # (x, y, img, site, show_caption)
+    cells = [
+        (x_a, y_row1, _load(tag_a, "s2"), pair["a"], False),
+        (x_b, y_row1, _load(tag_b, "s2"), pair["b"], False),
+        (x_a, y_row2, _load(tag_a, "ae"), pair["a"], True),
+        (x_b, y_row2, _load(tag_b, "ae"), pair["b"], True),
+    ]
+
+    # ── Paste tiles, borders, captions (AlphaEarth row only) ─────────────
+    for cx, cy, img, site, show_caption in cells:
+        canvas.paste(img, (cx, cy))
+        draw.rectangle([cx, cy, cx + TILE - 1, cy + TILE - 1],
+                       outline=CLR_BORDER, width=1)
+        if show_caption:
+            draw.text((cx, y_cap),              site["region"],                            fill=CLR_LABEL, font=font_cap)
+            draw.text((cx, y_cap + LINE_H),     f"({site['lat']:.2f}, {site['lon']:.2f})", fill=CLR_META,  font=font_cap)
+            draw.text((cx, y_cap + 2 * LINE_H), site["lc"],                                fill=CLR_META,  font=font_cap)
+            draw.text((cx, y_cap + 3 * LINE_H), f"bands: {AE_BANDS_DISPLAY}",              fill=CLR_META,  font=font_cap)
+
+    ATLAS_DIR.mkdir(parents=True, exist_ok=True)
+    out = ATLAS_DIR / f"{case_name}_{grid_pos:02d}.png"
+    canvas.save(out)
+    print(f"  ✓ {out}  ({side}×{side})")
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 def main():
@@ -273,8 +383,12 @@ def main():
         if not all_results:
             print(f"  Case {case_num}: no entries in results.json — run download_images.py first.")
             continue
-        print(f"\nRendering {case_name}: {case_title[0]}, {case_title[1]}")
+        print(f"\nRendering {case_name} grid: {case_title[0]}, {case_title[1]}")
         render_grid(case_name, case_title, indices, all_pairs, all_results)
+
+        print(f"\nRendering {case_name} atlas tiles:")
+        for pos, idx in enumerate(indices, start=1):
+            render_pair_tiles(case_name, pos, all_pairs[idx], all_results[idx])
 
     print("\n✓ Done.")
 

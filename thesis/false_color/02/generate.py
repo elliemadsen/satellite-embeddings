@@ -169,6 +169,61 @@ def make_grid(tile_paths, output_path, font, font_title, font_sub,
     print(f"  ✓ Saved grid → {output_path}")
 
 
+# ── Square grid (no bottom caption block) ─────────────────────────────────────
+def make_square_grid(tile_paths, output_path, cell_px=None):
+    """8×8 grid with per-cell band captions; outer margin equal on all four sides,
+    canvas is a perfect square.  Font and caption height scale with cell_px.
+
+    Key insight: rows are taller than cols are wide (by caption_h per row).
+    To balance: solve for GAP_X so total content width == total content height:
+      8*cell_px + 7*GAP_X  =  8*(cell_px+caption_h) + 7*GAP_Y
+      → GAP_X = (8*caption_h + 7*GAP_Y) / 7
+    With equal outer margin M on all four sides the canvas is then exactly square.
+    """
+    if cell_px is None:
+        cell_px = CELL_PX
+
+    scale     = cell_px / CELL_PX
+    caption_h = round(CAPTION_H * scale)          # scale caption area with cell
+    font_size = max(9, round(9 * scale))
+    g_font    = _load_font(font_size)
+
+    GAP_Y = round(PADDING * scale)                # vertical gap between rows (px)
+    GAP_X = (8 * caption_h + 7 * GAP_Y) / 7      # solve for equal H/V margin
+    M     = round(PADDING * scale)                # equal outer margin on all four sides
+
+    size = round(8 * cell_px + 7 * GAP_X) + 2 * M
+
+    canvas = Image.new("RGB", (size, size), (255, 255, 255))
+    draw   = ImageDraw.Draw(canvas)
+
+    for idx in range(64):
+        row = idx // GRID_COLS
+        col = idx % GRID_COLS
+        x = M + round(col * (cell_px + GAP_X))
+        y = M + row * (cell_px + caption_h + GAP_Y)
+
+        if os.path.exists(tile_paths[idx]):
+            tile = Image.open(tile_paths[idx]).convert("RGB").resize(
+                (cell_px, cell_px), Image.LANCZOS
+            )
+            canvas.paste(tile, (x, y))
+        else:
+            canvas.paste(Image.new("RGB", (cell_px, cell_px), (200, 200, 200)), (x, y))
+
+        b0, b1, b2 = BAND_COMBOS[idx]
+        caption = f"{BANDS[b0]}, {BANDS[b1]}, {BANDS[b2]}"
+        bbox = draw.textbbox((0, 0), caption, font=g_font)
+        tw   = bbox[2] - bbox[0]
+        draw.text(
+            (x + (cell_px - tw) // 2, y + cell_px + round(3 * scale)),
+            caption, font=g_font, fill=(30, 30, 30),
+        )
+
+    canvas.save(output_path, dpi=(150, 150))
+    print(f"  ✓ Saved square grid → {output_path}")
+
+
 # ── Main ───────────────────────────────────────────────────────────────────────
 embed_col = ee.ImageCollection("GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL")
 embed_img = (
@@ -202,3 +257,78 @@ for radius_m, label, pixels in RADII:
               "Mekong Delta, Vietnam", LAT, LON, label, YEAR)
 
 print("\nDone.")
+
+# ── Atlas outputs ──────────────────────────────────────────────────────────────
+# Combo 62 and 63 at all radii + 100 km, plus a full 8×8 square grid.
+# All atlas tiles are downloaded at ATLAS_PIXELS resolution (higher quality).
+# Individual combo PNGs are saved at full download resolution (no resize).
+# Square grids display cells at ATLAS_GRID_CELL_PX.
+# No caption block on any image; captions go to atlas/captions.txt.
+
+ATLAS_DIR          = os.path.join(OUTPUT_DIR, "atlas")
+ATLAS_COMBOS       = [62, 63]
+ATLAS_PIXELS       = 512   # download resolution for all atlas tiles
+ATLAS_GRID_CELL_PX = 256   # per-cell display size in the square grid
+ATLAS_RADII        = [(r, lbl) for r, lbl, _ in RADII] + [(100_000, "100km")]
+
+os.makedirs(ATLAS_DIR, exist_ok=True)
+
+caption_lines = []
+
+print("\n── Atlas ──────────────────────────────────────────────────────────────")
+for radius_m, label in ATLAS_RADII:
+    print(f"\n  Radius {label}")
+    region         = get_region(LAT, LON, radius_m)
+    atlas_tile_dir = os.path.join(OUTPUT_DIR, label + "_atlas")
+    os.makedirs(atlas_tile_dir, exist_ok=True)
+
+    # Download all 64 tiles at atlas resolution (cached per atlas tile dir)
+    all_tile_paths = []
+    for i, (b0, b1, b2) in enumerate(BAND_COMBOS):
+        fp = os.path.join(atlas_tile_dir, f"combo_{i:02d}.png")
+        all_tile_paths.append(fp)
+        if not os.path.exists(fp):
+            print(f"    [{i + 1:02d}/64] RGB({BANDS[b0]}, {BANDS[b1]}, {BANDS[b2]})", end=" … ")
+            ok = download_tile(embed_img, region, b0, b1, b2, ATLAS_PIXELS, fp)
+            print("✓" if ok else "✗ FAILED")
+        else:
+            print(f"    [{i + 1:02d}/64] cached")
+
+    # ── Individual combo tiles — full download resolution, no text ─────────
+    for combo_idx in ATLAS_COMBOS:
+        src = os.path.join(atlas_tile_dir, f"combo_{combo_idx:02d}.png")
+        dst = os.path.join(ATLAS_DIR, f"combo{combo_idx:02d}_{label}.png")
+        if os.path.exists(src):
+            img = Image.open(src).convert("RGB")
+            img.save(dst, dpi=(150, 150))
+            print(f"    ✓ {os.path.basename(dst)}  ({img.size[0]}×{img.size[1]} px)")
+        else:
+            print(f"    ✗ Missing tile: {src}")
+
+        b0, b1, b2 = BAND_COMBOS[combo_idx]
+        caption_lines.append(
+            f"{os.path.basename(dst)}\n"
+            f"{BANDS[b0]}, {BANDS[b1]}, {BANDS[b2]}\n"
+            f"Mekong Delta, Vietnam\n"
+            f"{LAT:.5f}\u00b0N, {LON:.5f}\u00b0E\n"
+            f"AlphaEarth Foundations {YEAR}\n"
+            f"{label} \u00d7 {label}"
+        )
+
+    # ── Square grid ────────────────────────────────────────────────────────
+    grid_out = os.path.join(ATLAS_DIR, f"grid_{label}.png")
+    make_square_grid(all_tile_paths, grid_out, cell_px=ATLAS_GRID_CELL_PX)
+    caption_lines.append(
+        f"{os.path.basename(grid_out)}\n"
+        f"8\u00d78 false-color composite grid\n"
+        f"Mekong Delta, Vietnam\n"
+        f"{LAT:.5f}\u00b0N, {LON:.5f}\u00b0E\n"
+        f"AlphaEarth Foundations {YEAR}\n"
+        f"{label} \u00d7 {label}"
+    )
+
+captions_path = os.path.join(ATLAS_DIR, "captions.txt")
+with open(captions_path, "w") as f:
+    f.write("\n\n\n".join(caption_lines) + "\n")
+print(f"\n✓ Captions written → {captions_path}")
+print("Atlas done.")
